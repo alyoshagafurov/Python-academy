@@ -1,0 +1,34 @@
+# Python / backend
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+backend/.env
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+*.log
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Mentor analytics DB
+backend/data/
+*.db
+*.sqlite3
+
+# Build artifacts
+*.tsbuildinfo
+
+# Source image originals (used copies live in frontend/public/)
+/*.png
+
+# Books (copyrighted source material — never commit)
+книги/
+books/
