@@ -1,10 +1,13 @@
+# Secrets
+.env
+backend/.env
+
 # Python / backend
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 env/
-backend/.env
 
 # Node / frontend
 node_modules/

@@ -21,15 +21,27 @@ import sys
 from pathlib import Path
 
 # ── 1. Locate the bot project ───────────────────────────────────────────────
-# Default: a sibling folder `python-academy-bot` next to `python-academy-web`.
+# Resolution order:
+#   1) BOT_DIR env var (explicit override),
+#   2) the live sibling repo `../python-academy-bot` (local dev — no duplication),
+#   3) the vendored snapshot `backend/_bot` (used on deploy, e.g. Railway).
 #   backend/app/bot_bridge.py → parents: [app, backend, python-academy-web, ~]
-_DEFAULT_BOT_DIR = Path(__file__).resolve().parents[3] / "python-academy-bot"
-BOT_DIR = Path(os.getenv("BOT_DIR", str(_DEFAULT_BOT_DIR))).resolve()
+_SIBLING = Path(__file__).resolve().parents[3] / "python-academy-bot"
+_VENDORED = Path(__file__).resolve().parents[1] / "_bot"
+
+
+def _default_bot_dir() -> Path:
+    if (_SIBLING / "lessons").is_dir():
+        return _SIBLING
+    return _VENDORED
+
+
+BOT_DIR = Path(os.getenv("BOT_DIR", str(_default_bot_dir()))).resolve()
 
 if not (BOT_DIR / "lessons").is_dir():
     raise RuntimeError(
-        f"Не найден код бота в {BOT_DIR}. Укажи путь к папке бота через "
-        f"переменную окружения BOT_DIR (см. backend/.env.example)."
+        f"Не найден код бота в {BOT_DIR}. Укажи путь через переменную окружения "
+        f"BOT_DIR, либо положи снапшот бота в backend/_bot (см. README)."
     )
 
 # ── 2. Satisfy the bot's config import (no real token needed) ────────────────
