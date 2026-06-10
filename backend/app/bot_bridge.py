@@ -26,12 +26,15 @@ from pathlib import Path
 #   2) the live sibling repo `../python-academy-bot` (local dev — no duplication),
 #   3) the vendored snapshot `backend/_bot` (used on deploy, e.g. Railway).
 #   backend/app/bot_bridge.py → parents: [app, backend, python-academy-web, ~]
-_SIBLING = Path(__file__).resolve().parents[3] / "python-academy-bot"
-_VENDORED = Path(__file__).resolve().parents[1] / "_bot"
+_HERE = Path(__file__).resolve()
+_VENDORED = _HERE.parents[1] / "_bot"  # backend/_bot (deploy snapshot)
+# Live sibling repo for local dev — only if the path is deep enough (it isn't
+# in a container like /app/app/bot_bridge.py, where parents[3] would IndexError).
+_SIBLING = _HERE.parents[3] / "python-academy-bot" if len(_HERE.parents) > 3 else None
 
 
 def _default_bot_dir() -> Path:
-    if (_SIBLING / "lessons").is_dir():
+    if _SIBLING is not None and (_SIBLING / "lessons").is_dir():
         return _SIBLING
     return _VENDORED
 
