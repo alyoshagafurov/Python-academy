@@ -16,9 +16,9 @@ export function Footer() {
       <Container size="wide" className="py-12 text-caption text-fg-muted">
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr]">
           <div className="sm:col-span-2 md:col-span-1">
-            <p className="text-body font-semibold text-fg">Python Knowledge Hub</p>
+            <p className="text-body font-semibold text-fg">Python Academy</p>
             <p className="mt-2 max-w-[40ch]">
-              Python от первой строки до backend: примеры из жизни, короткая теория и код.
+              Python и математика мышления: короткая теория, примеры из жизни и проверка после каждой темы.
             </p>
           </div>
 
@@ -67,7 +67,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col-reverse gap-2 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Python Knowledge Hub</p>
+          <p>© {new Date().getFullYear()} Python Academy</p>
           <ThemeToggle withLabel />
         </div>
       </Container>

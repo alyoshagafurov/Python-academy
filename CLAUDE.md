@@ -1,4 +1,4 @@
-# Python Knowledge Hub — web
+# Python Academy — web
 
 Web version of the Telegram bot @python_academy_tj_bot. React SPA over a thin FastAPI layer
 that imports the bot's own content loader and services. Product context: `PRODUCT.md`;

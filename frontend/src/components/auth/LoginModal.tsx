@@ -72,7 +72,7 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
           </button>
 
           <h2 id={titleId} className="pr-10 text-title3 font-semibold text-fg">
-            Вход в Python Knowledge Hub
+            Вход в Python Academy
           </h2>
           <p className="mt-2 text-caption text-fg-muted">
             Прогресс, стрик и избранное синхронизируются с ботом по твоему Telegram-аккаунту.

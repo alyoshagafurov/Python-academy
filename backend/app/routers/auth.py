@@ -26,6 +26,7 @@ async def _user_public(user_id: int) -> dict | None:
         "username": user.username,
         "xp": user.xp,
         "is_pro": bool(user.is_pro),
+        "is_admin": user.user_id in settings.admin_telegram_ids,
     }
 
 
@@ -76,9 +77,10 @@ class DevLoginBody(BaseModel):
 
 @router.post("/dev")
 async def dev_login(body: DevLoginBody, response: Response) -> dict:
-    """Local-only login: become any user_id without Telegram (for testing sync)."""
+    """Local-only login: become any user_id without Telegram (for testing sync).
+    With DEV_AUTH off (production) the endpoint does not exist: 404."""
     if not settings.dev_auth_enabled:
-        raise HTTPException(status_code=403, detail="Dev-вход выключен.")
+        raise HTTPException(status_code=404, detail="Not Found")
     if await bot.models.get_user(body.user_id) is None:
         await bot.models.create_user(body.user_id, body.username or f"dev_{body.user_id}")
     issue_session(response, body.user_id)
@@ -89,7 +91,7 @@ async def dev_login(body: DevLoginBody, response: Response) -> dict:
 async def dev_users() -> dict:
     """Existing users for the dev-login dropdown (only when dev auth is on)."""
     if not settings.dev_auth_enabled:
-        raise HTTPException(status_code=403, detail="Dev-вход выключен.")
+        raise HTTPException(status_code=404, detail="Not Found")
     async with bot.models.connection() as db:  # type: ignore[attr-defined]
         import aiosqlite
 

@@ -58,10 +58,10 @@ async def get_related(course_id: str, lesson_id: int) -> dict:
         "items": [
             {
                 "course_id": rel.course_id,
-                "course_title": bot.get_course(rel.course_id).title,
+                "course_title": content.no_emoji(bot.get_course(rel.course_id).title),
                 "course_emoji": bot.get_course(rel.course_id).emoji,
                 "lesson_id": rel.lesson.id,
-                "title": rel.lesson.title,
+                "title": content.no_emoji(rel.lesson.title),
                 "topic_name": content.topic_name(rel.lesson.topic),
             }
             for rel in items
@@ -76,6 +76,7 @@ async def mark_read(
     """Theory-mode completion — mirrors the bot: advances the pointer and grants
     XP only on the first read (re-reading never farms XP)."""
     course, lesson = _require_lesson(course_id, lesson_id)
+    before = await userdata.course_pointer(user_id, course_id)
     result = await bot.lesson_service.mark_read(user_id, lesson_id, course_id)
     pointer = await userdata.course_pointer(user_id, course_id)
     done, total, percent = bot.course_service.course_progress(pointer or 1, course)
@@ -83,6 +84,9 @@ async def mark_read(
         "awarded": result.awarded,
         "xp_gain": result.xp_gain,
         "already_done": result.already_done,
+        # Progress is linear: a lesson past the current one counts only once the
+        # learner reaches it in order, so the site must not call it «done».
+        "ahead": bool(not result.awarded and before is not None and lesson_id > before),
         "progress": {"done": done, "total": total, "percent": percent},
         "current_lesson": pointer,
     }

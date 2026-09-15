@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="frontend/public/hero.png" alt="Python Knowledge Hub" width="100%" />
+<img src="frontend/public/hero.png" alt="Python Academy" width="100%" />
 
-# 🐍 Python Knowledge Hub — Web
+# 🐍 Python Academy — Web
 
 **Дорогой, тёмный и понятный справочник по Python, backend и вебу.**
 Веб-версия образовательной платформы [@python_academy_tj_bot](https://t.me/python_academy_tj_bot) — с той же базой и контентом, что и Telegram-бот.

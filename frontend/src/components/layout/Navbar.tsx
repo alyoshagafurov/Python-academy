@@ -38,7 +38,7 @@ export function Navbar() {
           to="/"
           className="inline-flex min-h-11 items-center text-body font-semibold tracking-tight text-fg"
         >
-          Python Knowledge Hub
+          Python Academy
         </Link>
 
         <nav aria-label="Основная навигация" className="hidden items-center md:flex">
@@ -182,6 +182,15 @@ function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
           >
             Кабинет
           </Link>
+          {user.is_admin && (
+            <Link
+              role="menuitem"
+              to="/insights"
+              className="flex min-h-11 items-center px-4 text-body text-fg hover:bg-surface"
+            >
+              Аналитика
+            </Link>
+          )}
           <button
             role="menuitem"
             type="button"
@@ -235,7 +244,7 @@ function MobileMenu({ user, onClose, onLogin, onLogout }: MobileMenuProps) {
           onClick={onClose}
           className="inline-flex min-h-11 items-center text-body font-semibold tracking-tight text-fg"
         >
-          Python Knowledge Hub
+          Python Academy
         </Link>
         <button type="button" data-autofocus aria-label="Закрыть меню" onClick={onClose} className={iconButton}>
           <X size={22} aria-hidden="true" />
@@ -256,6 +265,13 @@ function MobileMenu({ user, onClose, onLogin, onLogout }: MobileMenuProps) {
               <li>
                 <NavLink to="/dashboard" onClick={onClose} className={rowClass}>
                   Кабинет
+                </NavLink>
+              </li>
+            )}
+            {user?.is_admin && (
+              <li>
+                <NavLink to="/insights" onClick={onClose} className={rowClass}>
+                  Аналитика
                 </NavLink>
               </li>
             )}

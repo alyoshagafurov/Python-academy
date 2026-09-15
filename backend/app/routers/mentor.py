@@ -134,6 +134,8 @@ async def explain(body: ExplainBody, who: str = Depends(actor)) -> dict:
 
 @router.get("/analytics")
 async def analytics(user_id: int | None = Depends(optional_user)) -> dict:
-    if not settings.mentor_analytics_open and user_id is None:
-        raise HTTPException(status_code=401, detail="Требуется вход.")
+    """Admin-only. Everyone else gets 404, so the endpoint does not reveal itself."""
+    is_admin = user_id is not None and user_id in settings.admin_telegram_ids
+    if not (is_admin or settings.mentor_analytics_open):
+        raise HTTPException(status_code=404, detail="Not Found")
     return await mentor_store.analytics()

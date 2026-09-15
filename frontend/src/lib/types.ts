@@ -120,6 +120,7 @@ export interface User {
   username: string | null;
   xp: number;
   is_pro: boolean;
+  is_admin: boolean;
 }
 
 export interface ProfileCourse {
@@ -178,6 +179,8 @@ export interface ReadResult {
   awarded: boolean;
   xp_gain: number;
   already_done: boolean;
+  /** The lesson is past the current one: it counts once reached in order. */
+  ahead: boolean;
   progress: Progress;
   current_lesson: number | null;
 }

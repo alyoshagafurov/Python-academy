@@ -18,10 +18,9 @@ async def stats() -> dict:
         students = overview.get("total_users", 0)
     except Exception:
         students = 0
-    # Soft floor so a fresh DB still reads well on the landing page.
-    students_display = max(students, 1200)
+    # Real count only: no invented floor on a fresh database.
     return {
-        "students": students_display,
+        "students": students,
         "students_real": students,
         "courses": len(courses),
         "lessons": total_lessons,

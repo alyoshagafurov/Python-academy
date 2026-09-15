@@ -3,18 +3,26 @@ import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import type { MentorPoint } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
 import { PageTransition } from "@/components/PageTransition";
 import { Container } from "@/components/ui/Container";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/State";
+import { NotFoundPage } from "@/pages/NotFoundPage";
 
-/** Internal validation dashboard for the zero-token mentor experiment. */
+/** Internal validation dashboard for the zero-token mentor experiment (admins only;
+ *  the server answers 404 to everyone else, and so does this page). */
 export function InsightsPage() {
+  const { user, loading } = useAuth();
+  const isAdmin = !!user?.is_admin;
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["mentor-analytics"],
     queryFn: api.mentorAnalytics,
     refetchInterval: 15_000,
+    enabled: isAdmin,
   });
+
+  if (!loading && !isAdmin) return <NotFoundPage />;
 
   if (isError) {
     return (

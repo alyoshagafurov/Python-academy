@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { m } from "framer-motion";
-import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, ListOrdered } from "lucide-react";
+import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, ListOrdered } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoginModal } from "@/hooks/useLoginModal";
@@ -24,6 +24,12 @@ import { LivePreview } from "@/components/LivePreview";
 import { AdaptiveExplainer } from "@/components/mentor/AdaptiveExplainer";
 import { LessonToc } from "@/components/lesson/LessonToc";
 
+/** Result of «Понятно, отметить»; currentId is set when the lesson is ahead of the current one. */
+interface ReadNote {
+  text: string;
+  currentId?: number;
+}
+
 function readMinutes(...texts: string[]): number {
   const chars = texts.join(" ").replace(/<[^>]+>/g, "").length;
   return Math.max(1, Math.round(chars / 700));
@@ -38,7 +44,8 @@ export function LessonPage() {
   const d = useDuration();
 
   const [showMistakes, setShowMistakes] = useState(false);
-  const [readFlash, setReadFlash] = useState<string | null>(null);
+  const [readFlash, setReadFlash] = useState<ReadNote | null>(null);
+  const flashTimer = useRef<number | undefined>(undefined);
   const [ownWords, setOwnWords] = useState("");
   const [tocOpen, setTocOpen] = useState(false);
   const viewedRef = useRef("");
@@ -100,11 +107,18 @@ export function LessonPage() {
     mutationFn: () => api.markRead(courseId, lid),
     onSuccess: (res) => {
       api.mentorEvent("lesson_read", courseId, lid, { title: lesson?.title });
-      setReadFlash(res.awarded ? `+${res.xp_gain} XP — тема пройдена!` : "Отмечено прочитанным");
+      window.clearTimeout(flashTimer.current);
       qc.invalidateQueries({ queryKey: ["lesson", courseId, lid] });
       qc.invalidateQueries({ queryKey: ["course", courseId] });
       qc.invalidateQueries({ queryKey: ["profile"] });
-      setTimeout(() => setReadFlash(null), 3500);
+      // Progress is linear: a lesson ahead of the current one is not counted yet,
+      // so say so and point to the lesson that is (this note stays on screen).
+      if (res.ahead && res.current_lesson) {
+        setReadFlash({ text: "Засчитается, когда дойдёшь сюда по порядку.", currentId: res.current_lesson });
+        return;
+      }
+      setReadFlash({ text: res.awarded ? `+${res.xp_gain} XP — тема пройдена!` : "Отмечено прочитанным" });
+      flashTimer.current = window.setTimeout(() => setReadFlash(null), 3500);
     },
   });
 
@@ -316,11 +330,23 @@ export function LessonPage() {
               <Button size="lg" onClick={handleRead} disabled={readMut.isPending}>
                 {lesson.status === "done" ? "Прочитано" : "Понятно, отметить"}
               </Button>
-              <p role="status" className="flex items-center gap-2 text-caption text-fg">
+              <p role="status" className="flex flex-wrap items-center gap-x-2 text-caption text-fg">
                 {readFlash && (
                   <>
-                    <Check size={16} strokeWidth={2.5} className="text-success" aria-hidden="true" />
-                    {readFlash}
+                    {readFlash.currentId ? (
+                      <Clock size={16} className="text-fg-muted" aria-hidden="true" />
+                    ) : (
+                      <Check size={16} strokeWidth={2.5} className="text-success" aria-hidden="true" />
+                    )}
+                    {readFlash.text}
+                    {readFlash.currentId && (
+                      <Link
+                        to={`/courses/${courseId}/lessons/${readFlash.currentId}`}
+                        className="inline-flex min-h-11 items-center text-link hover:underline"
+                      >
+                        К текущему уроку
+                      </Link>
+                    )}
                   </>
                 )}
               </p>

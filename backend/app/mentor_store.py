@@ -13,7 +13,10 @@ from pathlib import Path
 
 import aiosqlite
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "mentor.db"
+from app.settings import settings
+
+# MENTOR_DB_PATH (absolute on Railway, e.g. /data/mentor.db); default backend/data/mentor.db.
+DB_PATH: Path = settings.mentor_db_path
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (

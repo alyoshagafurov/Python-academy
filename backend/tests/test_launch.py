@@ -382,7 +382,9 @@ def test_sitemap_lists_every_course_and_lesson(client):
     assert {f"{SITE_URL}/", f"{SITE_URL}/courses"} <= locs
     for course in _courses():
         assert f"{SITE_URL}/courses/{course.id}" in locs
-        assert all(f"{SITE_URL}/courses/{course.id}/lessons/{l.id}" in locs for l in course.lessons)
+        # Placeholder lessons are structure only («скоро») and stay out of the index.
+        lessons = [l for l in course.lessons if not l.placeholder]
+        assert all(f"{SITE_URL}/courses/{course.id}/lessons/{l.id}" in locs for l in lessons)
     assert not any(p in loc for loc in locs for p in ("/dashboard", "/search", "/insights"))
 
 

@@ -26,7 +26,7 @@ async def profile(user_id: int = Depends(require_user)) -> dict:
         done, total, percent = bot.course_service.course_progress(cur or 1, course)
         courses.append({
             "id": course.id,
-            "title": course.title,
+            "title": content.no_emoji(course.title),
             "emoji": course.emoji,
             "accent": content.course_meta(course.id)["accent"],
             "percent": percent if cur is not None else 0,
@@ -41,7 +41,7 @@ async def profile(user_id: int = Depends(require_user)) -> dict:
             "username": user.username,
             "xp": user.xp,
             "level": info.level,
-            "level_title": info.title,
+            "level_title": content.no_emoji(info.title),
             "level_percent": info.percent,
             "xp_to_next": info.to_next,
             "streak": user.streak,
@@ -60,10 +60,10 @@ async def bookmarks(user_id: int = Depends(require_user)) -> dict:
         "items": [
             {
                 "course_id": bm.course_id,
-                "course_title": bot.get_course(bm.course_id).title,
+                "course_title": content.no_emoji(bot.get_course(bm.course_id).title),
                 "course_emoji": bot.get_course(bm.course_id).emoji,
                 "lesson_id": bm.lesson.id,
-                "title": bm.lesson.title,
+                "title": content.no_emoji(bm.lesson.title),
                 "topic_name": content.topic_name(bm.lesson.topic),
             }
             for bm in items
@@ -78,12 +78,12 @@ async def recommendations(user_id: int = Depends(require_user)) -> dict:
         "items": [
             {
                 "course_id": r.course_id,
-                "course_title": bot.get_course(r.course_id).title,
+                "course_title": content.no_emoji(bot.get_course(r.course_id).title),
                 "course_emoji": bot.get_course(r.course_id).emoji,
                 "lesson_id": r.lesson.id,
-                "title": r.lesson.title,
+                "title": content.no_emoji(r.lesson.title),
                 "topic_name": content.topic_name(r.lesson.topic),
-                "reason": r.reason,
+                "reason": content.no_emoji(r.reason),
             }
             for r in recs
         ]

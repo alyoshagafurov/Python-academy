@@ -14,7 +14,7 @@ search the reference and keep favourites. Interface language: Russian.
 
 ## Product Purpose
 
-Python Knowledge Hub is the web version of the Telegram bot @python_academy_tj_bot. A learner
+Python Academy is the web version of the Telegram bot @python_academy_tj_bot. A learner
 goes through courses (tracks → topics); every topic explains one idea through a real-life
 analogy, short theory, a code example and its line-by-line breakdown. Success: a newcomer
 understands within seconds what the site is, that learning is free, and reaches the first
@@ -49,7 +49,7 @@ streak and favourites are one record shared with the Telegram bot.
 
 ## Brand Commitments
 
-- Name: «Python Knowledge Hub». Bot: @python_academy_tj_bot.
+- Name: «Python Academy» (renamed from «Python Knowledge Hub» at launch). Bot: @python_academy_tj_bot.
 - No emoji in UI chrome, no mascot/logo art; the name is set as text.
 
 ## Evidence on Hand

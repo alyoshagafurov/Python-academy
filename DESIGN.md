@@ -1,5 +1,5 @@
 ---
-name: Python Knowledge Hub
+name: Python Academy
 description: Free Python lessons for beginners, set like code on a showcase.
 colors:
   bg: "#ffffff"
@@ -156,7 +156,7 @@ components:
     height: "2px"
 ---
 
-# Design System: Python Knowledge Hub
+# Design System: Python Academy
 
 ## Overview
 

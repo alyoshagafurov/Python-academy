@@ -3,6 +3,7 @@
   "language": "python",
   "track": "beginner",
   "title": "Python Beginner",
+  "description": "С нуля до уверенного Python: циклы, функции, файлы, ошибки и ООП",
   "emoji": "🐍",
   "stages": [
     "stage_1",
