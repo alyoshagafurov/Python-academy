@@ -52,6 +52,11 @@ fields, code) and `rounded-3xl` (24px: large surfaces); `rounded-full` only on t
   `lib/api.ts`, `lib/types.ts`, `hooks/useAuth.tsx` for UI work.
 - Links with `target="_blank"` always carry `rel="noopener noreferrer"`.
 - Files under 500 lines; one component per concern.
+- Lesson HTML is rendered only through `TheoryRenderer` (DOMPurify allowlist in
+  `lib/sanitize.ts`; `backend/tests/test_launch.py` checks all content against it).
+- No new inline `<script>` in `index.html`: the CSP allows only the theme script by its sha256.
+  Styles may be inline (Shiki and React write colours into style attributes).
+- Production settings, volume, deploy and rollback: `docs/OPERATIONS.md`.
 
 ## Run locally
 
@@ -71,8 +76,16 @@ npm run dev
 ```
 
 ```bash
-# checks
+# checks (frontend)
 cd frontend
-npx tsc -b
-npm run build && npm run preview
+npm run lint && npx tsc -b && npm run build
 ```
+
+```bash
+# checks (backend: launch, security, SEO and math course tests)
+cd backend
+.venv/bin/python -m pytest tests -q
+```
+
+Local backend needs `DEV_AUTH=1` in `backend/.env`: without it the app refuses to start
+without `SESSION_SECRET` and `SITE_URL` (production defaults).
