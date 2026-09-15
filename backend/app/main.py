@@ -41,6 +41,9 @@ _SERVE_SPA = _FRONTEND is not None and (_FRONTEND / "index.html").is_file()
 _SOURCE_INDEX = Path(__file__).resolve().parents[2] / "frontend" / "index.html"
 _INDEX_FILE = _FRONTEND / "index.html" if _SERVE_SPA else _SOURCE_INDEX
 _INDEX_TEMPLATE = _INDEX_FILE.read_text(encoding="utf-8") if _INDEX_FILE.is_file() else ""
+if _SERVE_SPA:
+    # First paint must not wait for a separate stylesheet request.
+    _INDEX_TEMPLATE = seo.inline_local_stylesheets(_INDEX_TEMPLATE, _FRONTEND)
 _CSP = security.build_csp(security.inline_script_hashes(_INDEX_TEMPLATE))
 
 

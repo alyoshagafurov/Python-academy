@@ -463,6 +463,36 @@ def test_robots_txt(client):
         assert f"Disallow: {path}" in text
 
 
+def test_local_stylesheets_are_inlined(tmp_path):
+    """The built CSS is inlined into the HTML shell: no render-blocking request
+    before first paint. External stylesheets and missing files stay links."""
+    from app import seo
+
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "index-abc.css").write_text(":root{--bg:#fff}body{margin:0}", encoding="utf-8")
+    template = (
+        "<head>\n"
+        '    <link rel="stylesheet" crossorigin href="/assets/index-abc.css">\n'
+        '    <link rel="stylesheet" href="/assets/missing.css">\n'
+        '    <link rel="stylesheet" href="https://fonts.example/x.css">\n'
+        "</head>"
+    )
+    out = seo.inline_local_stylesheets(template, tmp_path)
+    assert "<style>:root{--bg:#fff}body{margin:0}</style>" in out
+    assert "/assets/index-abc.css" not in out
+    assert '<link rel="stylesheet" href="/assets/missing.css">' in out
+    assert '<link rel="stylesheet" href="https://fonts.example/x.css">' in out
+
+
+def test_inlined_css_cannot_close_the_style_tag(tmp_path):
+    from app import seo
+
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "evil.css").write_text("a{content:'</style><script>alert(1)</script>'}", encoding="utf-8")
+    out = seo.inline_local_stylesheets('<link rel="stylesheet" href="/assets/evil.css">', tmp_path)
+    assert "</style><script>" not in out
+
+
 def test_responses_are_compressed(client):
     r = client.get("/api/courses", headers={"accept-encoding": "gzip"})
     assert r.header("content-encoding") == "gzip"

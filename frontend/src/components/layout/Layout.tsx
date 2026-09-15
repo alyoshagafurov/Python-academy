@@ -1,16 +1,18 @@
 import type { ReactNode } from "react";
-import { LazyMotion, domAnimation } from "framer-motion";
+import { LazyMotion } from "framer-motion";
 import { LoginModalProvider } from "@/hooks/useLoginModal";
 import { LessonPrefetch } from "@/components/LessonPrefetch";
 import { Navbar } from "./Navbar";
 import { RouteAnnouncer } from "./RouteAnnouncer";
 import { Footer } from "./Footer";
 
+const loadMotionFeatures = () => import("@/lib/motionFeatures").then((mod) => mod.default);
+
 export function Layout({ children }: { children: ReactNode }) {
   return (
     // `m` components + domAnimation keep framer-motion out of the home page's
     // JS budget; `strict` throws if a full `motion` component sneaks back in.
-    <LazyMotion features={domAnimation} strict>
+    <LazyMotion features={loadMotionFeatures} strict>
       <LoginModalProvider>
         <LessonPrefetch />
         <RouteAnnouncer />

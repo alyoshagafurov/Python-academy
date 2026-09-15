@@ -26,7 +26,6 @@ export default defineConfig({
           if (lang) return `shiki-lang-${lang[1] === "bash" ? "shellscript" : lang[1]}`;
           if (/shiki|oniguruma|@shikijs|vscode-textmate|vscode-oniguruma/.test(id))
             return "shiki";
-          if (/framer-motion|(\/|\\)motion(\/|\\)/.test(id)) return "motion";
           if (/react|scheduler|@tanstack/.test(id)) return "vendor";
         },
       },

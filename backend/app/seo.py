@@ -11,6 +11,7 @@ import html
 import json
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
 
 from app import bot_bridge as bot
@@ -37,6 +38,26 @@ _LESSON_RE = re.compile(r"/courses/([\w-]+)/lessons/(\d{1,6})")
 _WS_RE = re.compile(r"\s+")
 _TITLE_RE = re.compile(r"<title>.*?</title>", re.S)
 _DESCRIPTION_RE = re.compile(r'\s*<meta\s+name="description"[^>]*>', re.S)
+_STYLESHEET_LINK_RE = re.compile(r'<link\b[^>]*\brel="stylesheet"[^>]*\bhref="(/assets/[^"]+\.css)"[^>]*/?>')
+
+
+def inline_local_stylesheets(template: str, root: Path) -> str:
+    """Replace links to built CSS under /assets/ with the CSS itself.
+
+    The stylesheet was the only render-blocking request before first paint (about
+    300 ms on a slow mobile link). Inline styles are allowed by the CSP. Links to
+    missing files or other origins are left as they are; «</style» inside the CSS
+    is escaped so it can never close the tag."""
+    root = Path(root).resolve()
+
+    def replace(match: re.Match) -> str:
+        path = (root / match.group(1).lstrip("/")).resolve()
+        if not path.is_relative_to(root) or not path.is_file():
+            return match.group(0)
+        css = path.read_text(encoding="utf-8").replace("</style", "<\\/style")
+        return f"<style>{css}</style>"
+
+    return _STYLESHEET_LINK_RE.sub(replace, template)
 
 
 @dataclass(frozen=True)
