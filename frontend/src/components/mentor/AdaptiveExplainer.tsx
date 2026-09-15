@@ -74,7 +74,10 @@ export function AdaptiveExplainer({
         ))}
       </div>
 
-      <div aria-live="polite">
+      {/* The explanation arrives over the network after the tap. Once a style is
+          chosen the area keeps a typical explanation's height (never shrinking back),
+          so the check below does not jump when the text lands. */}
+      <div aria-live="polite" className={cn(active !== null && "min-h-[23rem] md:min-h-[16rem]")}>
         {loading && (
           <p className="mt-5 flex items-center gap-2 text-body text-fg-muted">
             <Spinner decorative /> Подбираю объяснение…
