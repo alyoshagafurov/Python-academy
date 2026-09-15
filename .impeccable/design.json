@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-15T00:00:00Z",
+  "title": "Design System: Python Knowledge Hub",
+  "extensions": {
+    "colorMeta": {
+      "accent": { "role": "primary", "displayName": "Action Blue", "canonical": "#0071e3", "dark": "#2997ff", "tonalRamp": ["#002a57", "#003f82", "#0055ad", "#0062c4", "#0071e3", "#4d9cee", "#99c6f6", "#e0eefd"] },
+      "accent-hover": { "role": "primary", "displayName": "Action Blue Pressed", "canonical": "#0062c4", "dark": "#47a6ff", "tonalRamp": ["#00244a", "#00366f", "#004994", "#0062c4", "#2f80d2", "#6ea6e0", "#aecdef", "#e3effb"] },
+      "accent-fg": { "role": "primary", "displayName": "On Action", "canonical": "#ffffff", "dark": "#000000", "tonalRamp": ["#262626", "#474747", "#6b6b6b", "#8f8f8f", "#b3b3b3", "#d6d6d6", "#f0f0f0", "#ffffff"] },
+      "link": { "role": "primary", "displayName": "Link Blue", "canonical": "#0066cc", "dark": "#2997ff", "tonalRamp": ["#00264d", "#003a73", "#004f9a", "#0066cc", "#3385d6", "#66a3e0", "#99c2eb", "#e0edfa"] },
+      "bg": { "role": "neutral", "displayName": "Paper White", "canonical": "#ffffff", "dark": "#000000", "tonalRamp": ["#1d1d1f", "#3a3a3c", "#6e6e73", "#a1a1a6", "#d2d2d7", "#ededf0", "#f5f5f7", "#ffffff"] },
+      "surface": { "role": "neutral", "displayName": "Showcase Grey", "canonical": "#f5f5f7", "dark": "#1c1c1e", "tonalRamp": ["#1c1c1e", "#2c2c2e", "#38383a", "#6e6e73", "#a1a1a6", "#d2d2d7", "#ededf0", "#f5f5f7"] },
+      "surface-hover": { "role": "neutral", "displayName": "Pressed Grey", "canonical": "#ededf0", "dark": "#2c2c2e", "tonalRamp": ["#1c1c1e", "#2c2c2e", "#38383a", "#6e6e73", "#a1a1a6", "#d2d2d7", "#ededf0", "#f5f5f7"] },
+      "fg": { "role": "neutral", "displayName": "Ink", "canonical": "#1d1d1f", "dark": "#f5f5f7", "tonalRamp": ["#1d1d1f", "#3a3a3c", "#6e6e73", "#a1a1a6", "#c7c7cc", "#d2d2d7", "#ededf0", "#f5f5f7"] },
+      "fg-muted": { "role": "neutral", "displayName": "Graphite", "canonical": "#6e6e73", "dark": "#a1a1a6", "tonalRamp": ["#1d1d1f", "#3a3a3c", "#6e6e73", "#98989d", "#a1a1a6", "#c7c7cc", "#d2d2d7", "#f5f5f7"] },
+      "line": { "role": "neutral", "displayName": "Hairline", "canonical": "#d2d2d7", "dark": "#38383a", "tonalRamp": ["#1c1c1e", "#2c2c2e", "#38383a", "#6e6e73", "#a1a1a6", "#c7c7cc", "#d2d2d7", "#ededf0"] },
+      "success": { "role": "status", "displayName": "Success Green", "canonical": "#1e8e3e", "dark": "#30d158", "tonalRamp": ["#0b3517", "#12531f", "#1e8e3e", "#30d158", "#6ddf8a", "#a3ebb5", "#d1f5da", "#eefbf1"] },
+      "danger": { "role": "status", "displayName": "Danger Red", "canonical": "#d70015", "dark": "#ff453a", "tonalRamp": ["#4d0008", "#80000d", "#d70015", "#ff453a", "#ff7a72", "#ffa9a4", "#ffd4d1", "#fff0ef"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Home hero H1 only." },
+      "headline": { "displayName": "Title 1", "purpose": "Page H1s (700, -0.025em) and home section H2s from md (600)." },
+      "headline-small": { "displayName": "Title 2", "purpose": "Section H2s on mobile, stat values." },
+      "title": { "displayName": "Title 3", "purpose": "Card titles, lesson step titles, mobile menu rows, showcase analogy line." },
+      "body": { "displayName": "Body", "purpose": "Running text, buttons, list rows; theory prose at 1.65 and 68ch." },
+      "label": { "displayName": "Caption", "purpose": "Meta rows, trailing list values, desktop nav, step numbers." },
+      "code": { "displayName": "Code", "purpose": "Showcase and lesson code; 15px mobile, 17px from sm; ligatures off." }
+    },
+    "shadows": [
+      { "name": "popover", "value": "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08)", "dark": "0 8px 24px rgba(0,0,0,0.6)", "purpose": "Floating surfaces only: login dialog, profile menu." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "The only easing, for every transition and animation." },
+      { "name": "hero", "value": "300ms", "purpose": "Hero opacity with an 8px rise on load." },
+      { "name": "reveal", "value": "250ms", "purpose": "Home sections, once, at 15% in view, no stagger." },
+      { "name": "accordion", "value": "220ms", "purpose": "FAQ answer opacity." },
+      { "name": "enter", "value": "200ms", "purpose": "Dialog, sheet and mobile menu: opacity plus scale 0.97 to 1, scrim fade." },
+      { "name": "exit", "value": "150ms", "purpose": "Overlay exit; also hover colour transitions and button press (scale 0.98)." },
+      { "name": "reduced-motion", "value": "0ms", "purpose": "Every appearance is instant; only the spinner keeps turning, at 1.5s." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ],
+    "focusRing": { "value": "outline: 2px solid var(--accent); outline-offset: 2px", "purpose": "One ring everywhere, keyboard focus only; inset on grouped rows." },
+    "glass": { "value": "background: var(--nav-bg); backdrop-filter: blur(20px) saturate(180%)", "purpose": "Navbar only." }
+  },
+  "components": [
+    {
+      "name": "Main CTA",
+      "kind": "button",
+      "refersTo": "button-cta",
+      "description": "The single pill CTA of a screen.",
+      "html": "<button class=\"ds-btn-cta\">Начать учиться</button>",
+      "css": ".ds-btn-cta { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 28px; border: none; border-radius: 9999px; background: var(--accent); color: var(--accent-fg); font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Onest Variable', system-ui, sans-serif); font-size: 1.0625rem; font-weight: 500; cursor: pointer; transition: background-color 150ms cubic-bezier(0.23,1,0.32,1), transform 150ms cubic-bezier(0.23,1,0.32,1); } .ds-btn-cta:hover { background: var(--accent-hover); } .ds-btn-cta:active { transform: scale(0.98); } .ds-btn-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Standard action with a 12px radius.",
+      "html": "<button class=\"ds-btn-primary\">Продолжить</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 20px; border: none; border-radius: 12px; background: var(--accent); color: var(--accent-fg); font-size: 1.0625rem; font-weight: 500; cursor: pointer; transition: background-color 150ms cubic-bezier(0.23,1,0.32,1), transform 150ms cubic-bezier(0.23,1,0.32,1); } .ds-btn-primary:hover { background: var(--accent-hover); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Neutral action on the surface tone.",
+      "html": "<button class=\"ds-btn-secondary\">Показать все курсы</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 20px; border: none; border-radius: 12px; background: var(--surface); color: var(--fg); font-size: 1.0625rem; font-weight: 500; cursor: pointer; transition: background-color 150ms cubic-bezier(0.23,1,0.32,1), transform 150ms cubic-bezier(0.23,1,0.32,1); } .ds-btn-secondary:hover { background: var(--surface-hover); } .ds-btn-secondary:active { transform: scale(0.98); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Link",
+      "kind": "button",
+      "refersTo": "button-plain",
+      "description": "Plain button or paired link beside the CTA.",
+      "html": "<a class=\"ds-link\" href=\"#\">Как устроен урок</a>",
+      "css": ".ds-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--link); font-size: 1.0625rem; font-weight: 500; text-decoration: none; text-underline-offset: 0.2em; } .ds-link:hover { text-decoration: underline; } .ds-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Inset Grouped List",
+      "kind": "custom",
+      "refersTo": "grouped-list",
+      "description": "iOS Settings-style list: one surface, 12px radius, hairline dividers.",
+      "html": "<ul class=\"ds-group\"><li><a class=\"ds-row\" href=\"#\"><span class=\"ds-row-main\">Переменные и типы</span><span class=\"ds-row-trail\">5 мин</span></a></li><li><a class=\"ds-row\" href=\"#\"><span class=\"ds-row-main\">bool и условия</span><span class=\"ds-row-trail\">7 мин</span></a></li><li><a class=\"ds-row\" href=\"#\"><span class=\"ds-row-main\">Циклы for и while</span><span class=\"ds-row-trail\">8 мин</span></a></li></ul>",
+      "css": ".ds-group { list-style: none; margin: 0; padding: 0; overflow: hidden; border-radius: 12px; background: var(--surface); } .ds-group li + li { border-top: 1px solid var(--line); } .ds-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 12px 16px; color: var(--fg); font-size: 1.0625rem; text-decoration: none; transition: background-color 150ms cubic-bezier(0.23,1,0.32,1); } .ds-row:hover { background: var(--surface-hover); } .ds-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; } .ds-row-main { flex: 1; min-width: 0; } .ds-row-trail { font-size: 0.875rem; color: var(--fg-muted); }"
+    },
+    {
+      "name": "Course Card",
+      "kind": "card",
+      "refersTo": "course-card",
+      "description": "Typographic card with a 24px radius and an optional 2px progress line.",
+      "html": "<a class=\"ds-card\" href=\"#\"><h3 class=\"ds-card-title\">Python Beginner</h3><p class=\"ds-card-text\">Синтаксис, типы, циклы, функции</p><p class=\"ds-card-meta\">Beginner · 4 трека · 60 тем · пройдено 30%</p><div class=\"ds-progress\"><div style=\"width:30%\"></div></div></a>",
+      "css": ".ds-card { display: flex; flex-direction: column; min-height: 176px; padding: 32px; border-radius: 24px; background: var(--surface); text-decoration: none; transition: background-color 150ms cubic-bezier(0.23,1,0.32,1); } .ds-card:hover { background: var(--surface-hover); } .ds-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-card-title { margin: 0; font-size: 1.3125rem; line-height: 1.35; font-weight: 600; color: var(--fg); } .ds-card-text { margin: 8px 0 0; font-size: 1.0625rem; color: var(--fg-muted); } .ds-card-meta { margin: auto 0 0; padding-top: 24px; font-size: 0.875rem; color: var(--fg-muted); } .ds-progress { margin-top: 16px; height: 2px; border-radius: 9999px; background: var(--line); overflow: hidden; } .ds-progress div { height: 100%; background: var(--accent); }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Hairline field with a 12px radius on bg.",
+      "html": "<label class=\"ds-field\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input type=\"search\" placeholder=\"Например: цикл for, словари, формы\"></label>",
+      "css": ".ds-field { position: relative; display: block; width: 100%; } .ds-field svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--fg-muted); pointer-events: none; } .ds-field input { width: 100%; height: 48px; padding: 0 48px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--fg); font-size: 1.0625rem; } .ds-field input::placeholder { color: var(--fg-muted); } .ds-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Navbar",
+      "kind": "nav",
+      "refersTo": "navbar",
+      "description": "Sticky 52px glass bar, the only translucent surface.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-nav-brand\" href=\"#\">Python Knowledge Hub</a><nav class=\"ds-nav-links\"><a href=\"#\" class=\"is-active\">Курсы</a><a href=\"#\">Поиск</a><a href=\"#\">PRO</a></nav><button class=\"ds-nav-login\">Войти</button></header>",
+      "css": ".ds-nav { position: sticky; top: 0; display: flex; align-items: center; gap: 24px; height: 52px; padding: 0 24px; border-bottom: 1px solid var(--line); background: var(--nav-bg); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); } .ds-nav-brand { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.01em; color: var(--fg); text-decoration: none; } .ds-nav-links { display: flex; } .ds-nav-links a { display: inline-flex; align-items: center; height: 44px; padding: 0 12px; border-radius: 12px; font-size: 0.875rem; color: var(--fg-muted); text-decoration: none; transition: color 150ms cubic-bezier(0.23,1,0.32,1); } .ds-nav-links a:hover, .ds-nav-links a.is-active { color: var(--fg); } .ds-nav-login { margin-left: auto; height: 44px; padding: 0 12px; border: none; background: none; font-size: 0.875rem; font-weight: 500; color: var(--link); cursor: pointer; } .ds-nav-login:hover { text-decoration: underline; } .ds-nav a:focus-visible, .ds-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Lesson Showcase",
+      "kind": "custom",
+      "refersTo": "lesson-showcase",
+      "description": "Code presented as the hero object: surface figure, line numbers, a quiet band on the branch that runs.",
+      "html": "<figure class=\"ds-showcase\"><p class=\"ds-sc-analogy\">Условие — светофор: if зелёный — идём, else красный — стоим.</p><pre class=\"ds-sc-code\"><span class=\"ln\"><i>1</i><span>age <b class=\"p\">=</b> <b class=\"c\">15</b></span></span><span class=\"ln\"><i>2</i><span><b class=\"k\">if</b> age <b class=\"p\">&gt;=</b> <b class=\"c\">18</b><b class=\"p\">:</b></span></span><span class=\"ln\"><i>3</i><span>    <b class=\"f\">print</b><b class=\"p\">(</b><b class=\"s\">'взрослый'</b><b class=\"p\">)</b></span></span><span class=\"ln run\"><i>4</i><span><b class=\"k\">elif</b> age <b class=\"p\">&gt;=</b> <b class=\"c\">13</b><b class=\"p\">:</b></span></span><span class=\"ln run\"><i>5</i><span>    <b class=\"f\">print</b><b class=\"p\">(</b><b class=\"s\">'подросток'</b><b class=\"p\">)</b></span></span></pre><div class=\"ds-sc-foot\"><span>Вывод: <em>подросток</em></span><a href=\"#\">Открыть урок</a></div></figure>",
+      "css": ".ds-showcase { margin: 0; max-width: 980px; padding: 40px 56px; border-radius: 24px; background: var(--surface); } .ds-sc-analogy { margin: 0; max-width: 60ch; font-size: 1.3125rem; line-height: 1.35; color: var(--fg); } .ds-sc-code { display: grid; margin: 40px 0 0; overflow-x: auto; font-family: ui-monospace, 'SF Mono', 'JetBrains Mono Variable', monospace; font-size: 1.0625rem; line-height: 1.75; font-variant-ligatures: none; font-feature-settings: 'liga' 0, 'calt' 0; color: var(--shiki-foreground); } .ds-sc-code .ln { display: flex; gap: 20px; margin: 0 -12px; padding: 0 12px; border-radius: 8px; white-space: pre; } .ds-sc-code .ln.run { background: var(--surface-hover); } .ds-sc-code i { width: 16px; font-style: normal; text-align: right; color: var(--fg-muted); font-variant-numeric: tabular-nums; user-select: none; } .ds-sc-code .run i { color: var(--fg); } .ds-sc-code b { font-weight: 400; } .ds-sc-code .k { color: var(--shiki-token-keyword); } .ds-sc-code .c { color: var(--shiki-token-constant); } .ds-sc-code .s { color: var(--shiki-token-string); } .ds-sc-code .f { color: var(--shiki-token-function); } .ds-sc-code .p { color: var(--shiki-token-punctuation); } .ds-sc-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); font-family: ui-monospace, 'SF Mono', monospace; font-size: 0.875rem; color: var(--fg-muted); } .ds-sc-foot em { font-style: normal; color: var(--fg); } .ds-sc-foot a { font-family: var(--font-sans, -apple-system, system-ui, sans-serif); font-size: 1.0625rem; font-weight: 500; color: var(--link); text-decoration: none; } .ds-sc-foot a:hover { text-decoration: underline; } .ds-sc-foot a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Светлая витрина (The Bright Showcase)",
+    "overview": "The site presents Python the way a store window presents a single object: one real lesson fragment, set cleanly, with plenty of calm space around it. The default is light (white and a soft grey), with a true-black dark theme. The palette is Restrained: grey neutrals and ink carry everything, and one blue appears only when something can be pressed, followed, focused or measured. Depth comes from tonal surfaces and hairlines, not shadows. Code is the hero image, and there are no raster images at all.\n\nDensity is low on the home page (80px section rhythm on mobile, 128px from md, one showcase per viewport) and moderate on reading and working pages, where content sits in inset grouped lists like iOS Settings. Type is the system font (SF on Apple platforms) with self-hosted Onest as the cross-platform fallback. Headings are tight and bold, and body text is set generously at 17px.\n\nMotion is minimal and quiet. Only the hero, first-time section reveals, disclosures and overlays animate. Routes change instantly, progress never animates, and reduced motion makes every appearance instant.",
+    "keyCharacteristics": [
+      "Light-first, tonal layering (white bg, #F5F5F7 surface, #EDEDF0 hover), hairline #D2D2D7 dividers.",
+      "One accent blue, reserved for action, links, active state, focus and progress.",
+      "Two radii for surfaces: 12px for rows, fields and code, 24px for large surfaces. A pill shape only on a screen's main CTA.",
+      "Inset grouped lists as the default container for sets of items.",
+      "Code set in the showcase style: surface panel, line numbers, Shiki css-variables colours, no ligatures.",
+      "The navbar is the only translucent surface."
+    ],
+    "rules": [
+      { "name": "The One Blue Rule", "body": "Blue appears only on something the user can press, follow, focus on, or read as progress. A blue heading, icon or background band is a defect.", "section": "colors" },
+      { "name": "The Token-Only Rule", "body": "Colours are defined only in `frontend/src/index.css` (`:root` light, `.dark` dark, mapped in `@theme inline`). Components and pages use token names only and never contain hex values.", "section": "colors" },
+      { "name": "The Readable Code Rule", "body": "Every Shiki token colour must reach at least 4.5:1 on the surface in both themes. Syntax colours come from the `--shiki-token-*` variables, never from a bundled Shiki theme.", "section": "colors" },
+      { "name": "The Straight Operators Rule", "body": "Code never uses ligatures (`liga` and `calt` are off on pre, code, kbd and samp). Beginners retype what they see, so `>=` must look like two characters.", "section": "typography" },
+      { "name": "The Tabular Count Rule", "body": "Counters, progress percentages, step numbers and line numbers use tabular numerals.", "section": "typography" },
+      { "name": "The Balanced Heading Rule", "body": "h1 to h3 use `text-wrap: balance`, and line length is capped with ch widths (36 to 60ch for supporting text).", "section": "typography" },
+      { "name": "The Single Glass Rule", "body": "The sticky navbar is the only translucent surface (nav-bg at 80% white or 72% black, backdrop blur 20px, saturate 180%, hairline bottom border). Cards, sheets, dialogs and menus are opaque.", "section": "elevation" },
+      { "name": "The Floating-Only Shadow Rule", "body": "A shadow means the element floats over the page. Cards, lists and code blocks at rest never have one.", "section": "elevation" },
+      { "name": "The Scrim Rule", "body": "Modal overlays use the overlay token (40% black light, 60% dark). In dark mode, dialogs and sheets lift to surface rather than gaining a shadow.", "section": "elevation" },
+      { "name": "The Pill Is Singular Rule", "body": "Only one pill button per screen, and it is the main CTA («Начать учиться», «Войти через Telegram»). Every other button uses the 12px radius.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do use token names only (bg, surface, fg, fg-muted, line, accent, link) and define new colours in index.css for both themes.",
+      "Do keep blue to actions, links, active state, focus and progress, and use the link token for text links.",
+      "Do group items in inset grouped lists (12px radius on surface, hairline dividers, rows at least 52px).",
+      "Do show code with the showcase or CodeBlock styling: surface panel, line numbers, `--shiki-token-*` colours, ligatures off.",
+      "Do use 12px radii for rows, fields and code, 24px for large surfaces, and 8px only for elements nested inside them.",
+      "Do keep every tap target at least 44px tall and every appearance at 300ms or less with the strong ease-out, instant under reduced motion."
+    ],
+    "donts": [
+      "Don't put hex values in components or pages.",
+      "Don't use emoji in the UI, including content pulled from the bot (strip leading emoji).",
+      "Don't add raster images, illustrations or hero art. Real code is the imagery.",
+      "Don't put eyebrow or kicker labels above headings.",
+      "Don't use a pill shape for anything except the screen's single main CTA.",
+      "Don't make any surface other than the navbar translucent, and don't put shadows on resting cards, lists or code.",
+      "Don't animate route changes or progress values."
+    ]
+  }
+}
