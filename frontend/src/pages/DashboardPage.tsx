@@ -1,23 +1,23 @@
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { Flame, Star, Trophy, Sparkles, ArrowRight, BookMarked } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoginModal } from "@/hooks/useLoginModal";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { pluralize } from "@/lib/utils";
 import { PageTransition } from "@/components/PageTransition";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { Container } from "@/components/ui/Container";
+import { GroupedList, GroupedRow } from "@/components/ui/GroupedList";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { formatNumber, pluralize } from "@/lib/utils";
+import { EmptyState, ErrorState } from "@/components/ui/State";
 
 export function DashboardPage() {
   const { user, loading } = useAuth();
   const { open } = useLoginModal();
 
-  const { data: profile } = useQuery({
+  const profileQuery = useQuery({
     queryKey: ["profile"],
     queryFn: api.profile,
     enabled: !!user,
@@ -35,193 +35,198 @@ export function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
-        <Skeleton className="h-40 w-full" />
-      </div>
+      <Container className="pb-24 pt-12 md:pt-20" aria-busy="true">
+        <Skeleton className="h-10 w-72" />
+        <Skeleton className="mt-10 h-28 w-full" />
+      </Container>
     );
   }
 
   if (!user) {
     return (
       <PageTransition>
-        <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6">
-          <div className="text-5xl">🔐</div>
-          <h1 className="mt-4 text-2xl font-bold text-fg">Войди, чтобы увидеть кабинет</h1>
-          <p className="mt-2 text-fg-muted">
-            Прогресс, стрик и избранное хранятся по твоему Telegram-аккаунту —
-            тому же, что в боте.
+        <Container size="narrow" className="py-24 text-center">
+          <h1 className="text-title2 font-bold text-fg">Войди, чтобы открыть кабинет</h1>
+          <p className="mx-auto mt-3 max-w-[44ch] text-body text-fg-muted">
+            Прогресс, стрик и избранное хранятся по твоему Telegram-аккаунту — тому же, что в боте.
           </p>
-          <Button size="lg" className="mt-6" onClick={open}>
+          <Button size="lg" pill className="mt-8" onClick={open}>
             Войти через Telegram
           </Button>
-        </div>
+        </Container>
       </PageTransition>
     );
   }
 
+  if (profileQuery.isError) {
+    return (
+      <Container size="text" className="py-20">
+        <ErrorState onRetry={() => profileQuery.refetch()} />
+      </Container>
+    );
+  }
+
+  const profile = profileQuery.data;
   const p = profile?.user;
+  const courses = profile?.courses ?? [];
+  const done = courses.reduce((sum, c) => sum + c.done, 0);
+  const total = courses.reduce((sum, c) => sum + c.total, 0);
+  const overall = total ? Math.round((done / total) * 100) : 0;
+  const streak = p?.streak ?? 0;
+  const inProgress =
+    [...courses].filter((c) => c.done > 0 && c.percent < 100).sort((a, b) => b.percent - a.percent)[0] ??
+    courses.find((c) => c.done > 0);
+  const name = p?.username ? `@${p.username}` : `user_${user.id}`;
+
+  const stats = [
+    { value: `${overall}%`, label: "общий прогресс" },
+    { value: String(streak), label: pluralize(streak, "день подряд", "дня подряд", "дней подряд") },
+    { value: String(done), label: pluralize(done, "тема пройдена", "темы пройдено", "тем пройдено") },
+  ];
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-        {/* Profile header */}
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-8">
-          <div className="glow" />
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-primary to-accent text-2xl font-bold text-white">
-                {(p?.username ?? "U")[0]?.toUpperCase()}
+      <Container className="pb-24 pt-12 md:pt-20">
+        <h1 className="break-words text-title2 font-bold tracking-[-0.025em] text-fg md:text-title1">Привет, {name}</h1>
+        {p && (
+          <p className="mt-2 text-caption text-fg-muted">
+            {p.level_title} · уровень {p.level}
+            {p.is_pro ? " · PRO" : ""}
+          </p>
+        )}
+
+        {profile ? (
+          <dl className="mt-10 grid grid-cols-3 divide-x divide-line border-y border-line">
+            {stats.map((s) => (
+              <div key={s.label} className="flex flex-col-reverse px-3 py-6 first:pl-0 sm:px-8">
+                <dt className="mt-1 text-caption text-fg-muted">{s.label}</dt>
+                <dd className="text-title2 font-semibold tracking-[-0.015em] text-fg tabular sm:text-title1">{s.value}</dd>
               </div>
-              <div>
-                <h1 className="text-2xl font-extrabold text-fg">
-                  @{p?.username ?? `user_${user.id}`}
-                </h1>
-                <div className="mt-1 flex items-center gap-2">
-                  <Badge tone="primary">{p?.level_title}</Badge>
-                  {p?.is_pro && <Badge tone="accent">PRO</Badge>}
-                </div>
-              </div>
-            </div>
+            ))}
+          </dl>
+        ) : (
+          <Skeleton className="mt-10 h-28 w-full" />
+        )}
 
-            <div className="flex gap-6">
-              <Metric icon={Trophy} value={p ? formatNumber(p.xp) : "0"} label="XP" />
-              <Metric
-                icon={Flame}
-                value={`${p?.streak ?? 0}`}
-                label={pluralize(p?.streak ?? 0, "день", "дня", "дней")}
-                accent="text-orange-500"
-              />
-              <Metric
-                icon={Star}
-                value={`${profile?.bookmarks_count ?? 0}`}
-                label="в избранном"
-                accent="text-accent"
-              />
-            </div>
-          </div>
-
-          {/* Level progress */}
-          {p && (
-            <div className="relative mt-6">
-              <div className="mb-1.5 flex justify-between text-xs text-fg-muted">
-                <span>Уровень {p.level}</span>
-                <span>{formatNumber(p.xp_to_next)} XP до следующего</span>
-              </div>
-              <ProgressBar value={p.level_percent} />
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Courses progress */}
-          <div className="lg:col-span-2">
-            <h2 className="mb-4 text-xl font-bold text-fg">Прогресс по курсам</h2>
-            <div className="space-y-3">
-              {profile?.courses.map((c) => (
-                <Link key={c.id} to={`/courses/${c.id}`}>
-                  <Card className="flex items-center gap-4 p-4 transition-colors hover:bg-card-hover">
-                    <span className="text-2xl">{c.emoji}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex justify-between">
-                        <span className="truncate font-semibold text-fg">{c.title}</span>
-                        <span className="text-sm text-fg-muted">{c.percent}%</span>
-                      </div>
-                      <ProgressBar value={c.percent} color={c.accent} className="mt-2" />
-                      <div className="mt-1 text-xs text-fg-subtle">
-                        {c.done} / {c.total} тем
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Right column */}
-          <div className="space-y-8">
-            {/* Recommendations */}
-            <div>
-              <h2 className="mb-4 flex items-center gap-1.5 text-xl font-bold text-fg">
-                <Sparkles size={18} className="text-primary" /> Что учить дальше
+        <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <div className="space-y-12">
+            <section aria-labelledby="continue-title">
+              <h2 id="continue-title" className="text-title3 font-semibold text-fg">
+                Продолжить
               </h2>
-              <div className="space-y-2">
-                {recs?.items.length ? (
-                  recs.items.map((r) => (
-                    <Link
-                      key={`${r.course_id}-${r.lesson_id}`}
-                      to={`/courses/${r.course_id}/lessons/${r.lesson_id}`}
-                      className="group block rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-card-hover"
-                    >
-                      <div className="flex items-center gap-2 font-medium text-fg">
-                        <span>{r.course_emoji}</span>
-                        <span className="line-clamp-1">{r.title}</span>
-                        <ArrowRight
-                          size={15}
-                          className="ml-auto text-fg-subtle transition-transform group-hover:translate-x-0.5"
-                        />
-                      </div>
-                      <p className="mt-1 text-xs text-fg-subtle">{r.reason}</p>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-sm text-fg-muted">
-                    Начни любой курс — и здесь появятся рекомендации.
+              {!profile ? (
+                <Skeleton className="mt-4 h-40 w-full rounded-3xl" />
+              ) : inProgress ? (
+                <Link
+                  to={`/courses/${inProgress.id}`}
+                  className="mt-4 block rounded-3xl bg-surface p-6 transition-colors duration-150 ease-out hover:bg-surface-hover md:p-8"
+                >
+                  <p className="text-title3 font-semibold text-fg">{inProgress.title}</p>
+                  <p className="mt-1 text-caption text-fg-muted tabular">
+                    Пройдено {inProgress.done} из {inProgress.total} · {inProgress.percent}%
                   </p>
-                )}
-              </div>
-            </div>
+                  <ProgressBar value={inProgress.percent} label={`Курс пройден на ${inProgress.percent}%`} className="mt-4" />
+                  <span className="mt-5 inline-block text-body font-medium text-link">Открыть курс</span>
+                </Link>
+              ) : (
+                <EmptyState
+                  className="mt-4"
+                  title="Ты ещё не начал ни одного курса"
+                  text="Выбери курс — и прогресс появится здесь."
+                  action={<ButtonLink to="/courses">Выбрать курс</ButtonLink>}
+                />
+              )}
+            </section>
 
-            {/* Bookmarks */}
-            <div>
-              <h2 className="mb-4 flex items-center gap-1.5 text-xl font-bold text-fg">
-                <BookMarked size={18} className="text-accent" /> Избранное
+            {courses.length > 0 && (
+              <section aria-labelledby="courses-title">
+                <h2 id="courses-title" className="text-title3 font-semibold text-fg">
+                  Мои курсы
+                </h2>
+                <GroupedList className="mt-4">
+                  {courses.map((c) => (
+                    <GroupedRow
+                      key={c.id}
+                      to={`/courses/${c.id}`}
+                      trailing={
+                        <>
+                          <span className="tabular">{c.percent}%</span>
+                          <ChevronRight size={18} aria-hidden="true" />
+                        </>
+                      }
+                    >
+                      <span className="block truncate">{c.title}</span>
+                      <span className="mt-0.5 block text-caption text-fg-muted tabular">
+                        {c.done} из {c.total} тем
+                      </span>
+                      {c.done > 0 && <ProgressBar value={c.percent} label={`${c.title}: ${c.percent}%`} className="mt-2" />}
+                    </GroupedRow>
+                  ))}
+                </GroupedList>
+              </section>
+            )}
+          </div>
+
+          <div className="space-y-12">
+            <section aria-labelledby="bookmarks-title">
+              <h2 id="bookmarks-title" className="text-title3 font-semibold text-fg">
+                Избранное
               </h2>
-              <div className="space-y-2">
-                {bookmarks?.items.length ? (
-                  bookmarks.items.map((b) => (
-                    <Link
+              {!bookmarks ? (
+                <Skeleton className="mt-4 h-32 w-full" />
+              ) : bookmarks.items.length ? (
+                <GroupedList className="mt-4">
+                  {bookmarks.items.map((b) => (
+                    <GroupedRow
                       key={`${b.course_id}-${b.lesson_id}`}
                       to={`/courses/${b.course_id}/lessons/${b.lesson_id}`}
-                      className="block rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-fg transition-colors hover:bg-card-hover"
+                      trailing={<ChevronRight size={18} aria-hidden="true" />}
                     >
-                      <span className="mr-1">{b.course_emoji}</span>
-                      {b.title}
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-sm text-fg-muted">
-                    Пока пусто. Жми ⭐ на темах, чтобы сохранить.
-                  </p>
-                )}
-              </div>
-            </div>
+                      <span className="block">{b.title}</span>
+                      <span className="mt-0.5 block text-caption text-fg-muted">{b.course_title}</span>
+                    </GroupedRow>
+                  ))}
+                </GroupedList>
+              ) : (
+                <EmptyState
+                  className="mt-4"
+                  title="В избранном пока пусто"
+                  text="Нажми значок закладки рядом с заголовком урока, чтобы сохранить тему."
+                  action={
+                    <ButtonLink to="/courses" variant="secondary" className="bg-bg">
+                      Открыть курсы
+                    </ButtonLink>
+                  }
+                />
+              )}
+            </section>
+
+            <section aria-labelledby="recs-title">
+              <h2 id="recs-title" className="text-title3 font-semibold text-fg">
+                Что учить дальше
+              </h2>
+              {!recs ? (
+                <Skeleton className="mt-4 h-32 w-full" />
+              ) : recs.items.length ? (
+                <GroupedList className="mt-4">
+                  {recs.items.map((r) => (
+                    <GroupedRow
+                      key={`${r.course_id}-${r.lesson_id}`}
+                      to={`/courses/${r.course_id}/lessons/${r.lesson_id}`}
+                      trailing={<ChevronRight size={18} aria-hidden="true" />}
+                    >
+                      <span className="block">{r.title}</span>
+                      <span className="mt-0.5 block text-caption text-fg-muted">{r.reason}</span>
+                    </GroupedRow>
+                  ))}
+                </GroupedList>
+              ) : (
+                <p className="mt-4 text-body text-fg-muted">Начни любой курс — и здесь появятся рекомендации.</p>
+              )}
+            </section>
           </div>
         </div>
-      </div>
+      </Container>
     </PageTransition>
-  );
-}
-
-function Metric({
-  icon: Icon,
-  value,
-  label,
-  accent = "text-primary",
-}: {
-  icon: typeof Trophy;
-  value: string;
-  label: string;
-  accent?: string;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="text-center"
-    >
-      <Icon className={`mx-auto mb-1 ${accent}`} size={20} />
-      <div className="text-xl font-extrabold text-fg">{value}</div>
-      <div className="text-xs text-fg-subtle">{label}</div>
-    </motion.div>
   );
 }

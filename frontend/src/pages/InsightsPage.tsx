@@ -1,24 +1,36 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import type { MentorPoint } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
 import { PageTransition } from "@/components/PageTransition";
+import { Container } from "@/components/ui/Container";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/State";
 
 /** Internal validation dashboard for the zero-token mentor experiment. */
 export function InsightsPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["mentor-analytics"],
     queryFn: api.mentorAnalytics,
     refetchInterval: 15_000,
   });
 
+  if (isError) {
+    return (
+      <Container size="text" className="py-20">
+        <ErrorState onRetry={() => refetch()} />
+      </Container>
+    );
+  }
+
   if (isLoading || !data) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
-        <Skeleton className="h-40 w-full" />
-      </div>
+      <Container className="pb-24 pt-12 md:pt-20" aria-busy="true">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="mt-10 h-32 w-full" />
+        <Skeleton className="mt-12 h-56 w-full" />
+      </Container>
     );
   }
 
@@ -32,93 +44,129 @@ export function InsightsPage() {
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-fg">Mentor Insights</h1>
-        <p className="mt-2 text-fg-muted">
-          Валидация zero-token наставника. Обновляется каждые 15 сек. Всего событий: {t.events}.
+      <Container className="pb-24 pt-8 md:pt-12">
+        <Link to="/courses" className="-ml-1 inline-flex min-h-11 items-center gap-1 text-caption text-link hover:underline">
+          <ChevronLeft size={16} aria-hidden="true" />К курсам
+        </Link>
+        <h1 className="mt-6 text-title1 font-bold tracking-[-0.025em] text-fg">Mentor Insights</h1>
+        <p className="mt-3 max-w-[60ch] text-body text-fg-muted">
+          Валидация zero-token наставника. Обновляется каждые 15 секунд. Всего событий:{" "}
+          <span className="tabular">{t.events ?? 0}</span>.
         </p>
 
-        {/* KPIs */}
-        <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8 border-y border-line py-8 lg:grid-cols-4">
           {kpis.map((k) => (
-            <Card key={k.label} className="p-5">
-              <div className="text-3xl font-extrabold text-fg">{k.value}</div>
-              <div className="mt-1 text-sm font-semibold text-fg">{k.label}</div>
-              <div className="text-xs text-fg-subtle">{k.hint}</div>
-            </Card>
+            <div key={k.label} className="flex flex-col-reverse">
+              <dt className="mt-1">
+                <span className="block text-caption font-medium text-fg">{k.label}</span>
+                <span className="block text-caption text-fg-muted">{k.hint}</span>
+              </dt>
+              <dd className="text-title1 font-semibold tracking-[-0.015em] text-fg tabular">{k.value}</dd>
+            </div>
           ))}
-        </div>
+        </dl>
 
-        {/* Funnel + completion delta */}
-        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card className="p-5">
-            <h2 className="mb-3 font-bold text-fg">Воронка</h2>
-            <Row label="Просмотрено тем" value={t.lessons_viewed} />
-            <Row label="Прочитано (завершено)" value={t.lessons_read} />
-            <Row label="Открыли наставника" value={t.mentor_opens} />
-            <Row label="Запросов подсказок" value={t.hint_requests} />
-            <Row label="Открыли объяснятель" value={t.explain_opens} />
-          </Card>
-          <Card className="p-5">
-            <h2 className="mb-3 font-bold text-fg">Completion delta</h2>
-            <Row label="С ментором" value={`${data.completion_delta_percent.with_mentor}%`} />
-            <Row label="Без ментора" value={`${data.completion_delta_percent.without_mentor}%`} />
-            <p className="mt-3 text-xs text-fg-subtle">
-              Доля завершённых тем среди тех, кто пользовался ментором, vs остальных.
+        <div className="mt-12 grid gap-10 lg:grid-cols-2">
+          <StatTable
+            title="Воронка"
+            rows={[
+              ["Просмотрено тем", t.lessons_viewed],
+              ["Прочитано (завершено)", t.lessons_read],
+              ["Открыли наставника", t.mentor_opens],
+              ["Запросов подсказок", t.hint_requests],
+              ["Открыли объяснятель", t.explain_opens],
+            ]}
+          />
+          <div>
+            <StatTable
+              title="Completion delta"
+              rows={[
+                ["С ментором", `${data.completion_delta_percent.with_mentor}%`],
+                ["Без ментора", `${data.completion_delta_percent.without_mentor}%`],
+              ]}
+            />
+            <p className="mt-3 text-caption text-fg-muted">
+              Доля завершённых тем среди тех, кто пользовался ментором, в сравнении с остальными.
             </p>
-          </Card>
+          </div>
         </div>
 
-        {/* Point lists */}
-        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <PointList title="🔥 Confusion points" points={data.confusion_points} metric="score" />
-          <PointList title="🖱 Где жмут помощь" points={data.help_hotspots} metric="clicks" />
-          <PointList title="🚪 Drop-off" points={data.dropoff_points} metric="count" />
+        <div className="mt-12 grid gap-10 lg:grid-cols-3">
+          <PointTable title="Confusion points" valueLabel="Индекс" points={data.confusion_points} metric="score" />
+          <PointTable title="Где жмут помощь" valueLabel="Клики" points={data.help_hotspots} metric="clicks" />
+          <PointTable title="Drop-off" valueLabel="Уходы" points={data.dropoff_points} metric="count" />
         </div>
-
-        <Link to="/courses" className="mt-8 inline-block text-sm font-semibold text-primary hover:underline">
-          ← К курсам
-        </Link>
-      </div>
+      </Container>
     </PageTransition>
   );
 }
 
-function Row({ label, value }: { label: string; value: number | string }) {
+function StatTable({ title, rows }: { title: string; rows: [string, number | string | undefined][] }) {
   return (
-    <div className="flex items-center justify-between border-b border-border-soft py-2 last:border-0 text-sm">
-      <span className="text-fg-muted">{label}</span>
-      <span className="font-semibold text-fg">{value}</span>
-    </div>
+    <section>
+      <h2 className="text-body font-semibold text-fg">{title}</h2>
+      <div className="mt-3 overflow-x-auto rounded-xl bg-surface">
+        <table className="w-full text-body">
+          <caption className="sr-only">{title}</caption>
+          <tbody>
+            {rows.map(([label, value]) => (
+              <tr key={label} className="border-t border-line first:border-t-0">
+                <th scope="row" className="px-4 py-3 text-left font-normal text-fg-muted">
+                  {label}
+                </th>
+                <td className="px-4 py-3 text-right font-semibold text-fg tabular">{value ?? 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
-function PointList({
+function PointTable({
   title,
+  valueLabel,
   points,
   metric,
 }: {
   title: string;
+  valueLabel: string;
   points: MentorPoint[];
   metric: "score" | "clicks" | "count";
 }) {
   return (
-    <Card className="p-5">
-      <h2 className="mb-3 font-bold text-fg">{title}</h2>
-      {points.length === 0 ? (
-        <p className="text-sm text-fg-subtle">Пока нет данных.</p>
-      ) : (
-        <div className="space-y-1.5">
-          {points.map((p) => (
-            <div key={`${p.course_id}-${p.lesson_id}`} className="flex items-center justify-between gap-2 text-sm">
-              <span className="line-clamp-1 text-fg">{p.title || `#${p.lesson_id}`}</span>
-              <span className="shrink-0 rounded-md bg-card-hover px-2 py-0.5 text-xs font-semibold text-fg-muted">
-                {p[metric] ?? 0}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
+    <section>
+      <h2 className="text-body font-semibold text-fg">{title}</h2>
+      <div className="mt-3 overflow-x-auto rounded-xl bg-surface">
+        {points.length === 0 ? (
+          <p className="px-4 py-4 text-caption text-fg-muted">Пока нет данных.</p>
+        ) : (
+          <table className="w-full text-caption">
+            <caption className="sr-only">{title}</caption>
+            <thead>
+              <tr className="text-fg-muted">
+                <th scope="col" className="px-4 py-3 text-left font-normal">
+                  Тема
+                </th>
+                <th scope="col" className="px-4 py-3 text-right font-normal">
+                  {valueLabel}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {points.map((p) => (
+                <tr key={`${p.course_id}-${p.lesson_id}`} className="border-t border-line">
+                  <td className="px-4 py-3 text-fg">
+                    <span className="line-clamp-2">{p.title || `#${p.lesson_id}`}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold text-fg tabular">{p[metric] ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
   );
 }

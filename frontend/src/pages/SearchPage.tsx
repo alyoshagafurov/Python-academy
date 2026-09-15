@@ -1,18 +1,45 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { Search as SearchIcon, CornerDownLeft } from "lucide-react";
+import { ChevronRight, Search as SearchIcon } from "lucide-react";
 import { api } from "@/lib/api";
+import { pluralize } from "@/lib/utils";
 import { PageTransition } from "@/components/PageTransition";
-import { Badge } from "@/components/ui/Badge";
-import { Spinner } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/Button";
+import { Container } from "@/components/ui/Container";
+import { GroupedList, GroupedRow } from "@/components/ui/GroupedList";
+import { Skeleton, Spinner } from "@/components/ui/Skeleton";
+import { EmptyState, ErrorState } from "@/components/ui/State";
 
 const SUGGESTIONS = ["функции", "списки", "словари", "async", "Flask", "декораторы", "CSS"];
 
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Marks the matched part by weight, not colour. */
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${escapeRegExp(query)})`, "ig"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+          <b key={i} className="font-semibold">
+            {part}
+          </b>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 export function SearchPage() {
-  const [input, setInput] = useState("");
-  const [query, setQuery] = useState("");
+  const [params, setParams] = useSearchParams();
+  const [input, setInput] = useState(() => params.get("q") ?? "");
+  const [query, setQuery] = useState(() => (params.get("q") ?? "").trim());
 
   // Debounce input → query.
   useEffect(() => {
@@ -20,91 +47,124 @@ export function SearchPage() {
     return () => clearTimeout(t);
   }, [input]);
 
-  const { data, isFetching } = useQuery({
+  // Keep ?q= in the address so a search can be shared or reopened.
+  useEffect(() => {
+    if ((params.get("q") ?? "") !== query) setParams(query ? { q: query } : {}, { replace: true });
+  }, [query, params, setParams]);
+
+  const { data, isFetching, isError, refetch } = useQuery({
     queryKey: ["search", query],
     queryFn: () => api.search(query, 20),
     enabled: query.length > 0,
   });
 
+  const hits = data?.hits ?? [];
+
   return (
     <PageTransition>
-      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <h1 className="text-center text-3xl font-extrabold tracking-tight text-fg sm:text-4xl">
-          Поиск по теории
-        </h1>
-        <p className="mt-2 text-center text-fg-muted">
-          Одно поле — все 5 курсов и 200 тем.
-        </p>
+      <Container size="narrow" className="pb-24 pt-12 md:pt-20">
+        <h1 className="text-title1 font-bold tracking-[-0.025em] text-fg">Поиск</h1>
+        <p className="mt-3 text-body text-fg-muted">Ищи по названиям тем и теории всех курсов.</p>
 
-        <div className="relative mt-8">
+        <form
+          role="search"
+          className="relative mt-8"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setQuery(input.trim());
+          }}
+        >
+          <label htmlFor="search-input" className="sr-only">
+            Поиск по темам
+          </label>
           <SearchIcon
             size={20}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-subtle"
+            aria-hidden="true"
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-fg-muted"
           />
           <input
+            id="search-input"
+            type="search"
             autoFocus
+            autoComplete="off"
+            enterKeyHint="search"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Например: цикл for, генераторы, формы…"
-            className="h-14 w-full rounded-2xl border border-border bg-card pl-12 pr-4 text-lg text-fg shadow-sm outline-none transition-colors focus:border-primary"
+            placeholder="Например: цикл for, словари, формы"
+            className="h-12 w-full rounded-xl border border-line bg-bg pl-12 pr-12 text-body text-fg placeholder:text-fg-muted [&::-webkit-search-cancel-button]:hidden"
           />
           {isFetching && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2">
-              <Spinner />
-            </div>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2">
+              <Spinner label="Ищем" />
+            </span>
           )}
-        </div>
+        </form>
 
         {!query && (
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                onClick={() => setInput(s)}
-                className="rounded-full border border-border px-3 py-1.5 text-sm text-fg-muted hover:bg-card-hover hover:text-fg"
-              >
-                {s}
-              </button>
-            ))}
+          <div className="mt-8">
+            <p className="text-caption text-fg-muted">Часто ищут</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setInput(s)}
+                  className="min-h-11 rounded-xl bg-surface px-4 text-caption text-fg transition-colors duration-150 ease-out hover:bg-surface-hover active:scale-[0.98]"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        <div className="mt-8 space-y-3">
-          {data?.hits.map((hit, i) => (
-            <motion.div
-              key={`${hit.course_id}-${hit.lesson_id}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, delay: i * 0.03 }}
-            >
-              <Link
-                to={`/courses/${hit.course_id}/lessons/${hit.lesson_id}`}
-                className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-card-hover"
-              >
-                <div className="flex items-center gap-2">
-                  <span>{hit.course_emoji}</span>
-                  <span className="font-semibold text-fg group-hover:text-primary">
-                    {hit.title}
-                  </span>
-                  <Badge tone="default" className="ml-auto">
-                    {hit.topic_name}
-                  </Badge>
-                </div>
-                {hit.snippet && (
-                  <p className="mt-1.5 line-clamp-2 text-sm text-fg-muted">{hit.snippet}</p>
-                )}
-              </Link>
-            </motion.div>
-          ))}
-
-          {query && data && data.hits.length === 0 && !isFetching && (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center text-fg-muted">
-              <CornerDownLeft className="mx-auto mb-2 opacity-40" />
-              Ничего не нашлось по «{query}». Попробуй другой запрос.
+        <div className="mt-8" aria-live="polite">
+          {query && isError ? (
+            <ErrorState onRetry={() => refetch()} />
+          ) : query && data && hits.length === 0 && !isFetching ? (
+            <EmptyState
+              title={`Ничего не нашлось по «${query}»`}
+              text="Проверь написание или попробуй другое слово."
+              action={
+                <Button variant="secondary" onClick={() => setInput("")}>
+                  Очистить поиск
+                </Button>
+              }
+            />
+          ) : query && data && hits.length > 0 ? (
+            <>
+              <p className="mb-3 text-caption text-fg-muted">
+                {hits.length} {pluralize(hits.length, "результат", "результата", "результатов")}
+              </p>
+              <GroupedList>
+                {hits.map((hit) => (
+                  <GroupedRow
+                    key={`${hit.course_id}-${hit.lesson_id}`}
+                    to={`/courses/${hit.course_id}/lessons/${hit.lesson_id}`}
+                    trailing={<ChevronRight size={18} aria-hidden="true" />}
+                  >
+                    <span className="block">
+                      <Highlight text={hit.title} query={query} />
+                    </span>
+                    <span className="mt-0.5 block text-caption text-fg-muted">
+                      {hit.course_title} · {hit.topic_name}
+                    </span>
+                    {hit.snippet && (
+                      <span className="mt-1 line-clamp-2 block text-caption text-fg-muted">{hit.snippet}</span>
+                    )}
+                  </GroupedRow>
+                ))}
+              </GroupedList>
+            </>
+          ) : query && isFetching ? (
+            <div className="space-y-2" aria-busy="true">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-[72px] w-full" />
+              ))}
             </div>
-          )}
+          ) : null}
         </div>
-      </div>
+      </Container>
     </PageTransition>
   );
 }
