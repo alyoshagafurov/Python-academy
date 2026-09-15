@@ -19,6 +19,9 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
   const isCalc = lang === "math";
 
   useEffect(() => {
+    // The route keeps this instance across lessons: drop the previous highlight
+    // so another lesson's code never shows while the new one is prepared.
+    setHtml(null);
     if (isCalc) return;
     let active = true;
     import("@/lib/shiki")
@@ -55,9 +58,9 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
         // Focusable so a long line can be scrolled from the keyboard on a narrow screen.
         <pre tabIndex={0} className={cn("font-mono text-fg tabular", body)}>{code}</pre>
       ) : html ? (
-        <div className={cn("shiki-host shiki-numbered", body)} dangerouslySetInnerHTML={{ __html: html }} />
+        <div tabIndex={0} className={cn("shiki-host shiki-numbered", body)} dangerouslySetInnerHTML={{ __html: html }} />
       ) : (
-        <pre className={cn("font-mono text-fg", body)}>{code}</pre>
+        <pre tabIndex={0} className={cn("font-mono text-fg", body)}>{code}</pre>
       )}
     </div>
   );
