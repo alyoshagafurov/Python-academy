@@ -32,6 +32,10 @@ export default defineConfig({
       },
     },
   },
+  // The Shiki highlighter runs in a module Web Worker (src/lib/shiki.worker.ts).
+  worker: {
+    format: "es",
+  },
   server: {
     port: 5173,
     proxy: {

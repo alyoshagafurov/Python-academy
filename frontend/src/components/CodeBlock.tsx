@@ -26,8 +26,8 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
   useEffect(() => {
     if (isCalc) return;
     let active = true;
-    import("@/lib/shiki")
-      .then(({ highlight }) => highlight(code, lang))
+    import("@/lib/highlightClient")
+      .then(({ highlightOffThread }) => highlightOffThread(code, lang))
       .then((out) => {
         if (active) setHighlighted({ source: `${lang}\n${code}`, html: out });
       })

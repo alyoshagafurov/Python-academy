@@ -166,7 +166,7 @@ The site presents Python the way a store window presents a single object: one re
 
 Density is low on the home page (80px section rhythm on mobile, 128px from md, one showcase per viewport) and moderate on reading and working pages, where content sits in inset grouped lists like iOS Settings. Type is the system font (SF on Apple platforms) with self-hosted Onest as the cross-platform fallback. Headings are tight and bold, and body text is set generously at 17px.
 
-Motion is minimal and quiet. Only the hero, first-time section reveals, disclosures and overlays animate. Routes change instantly, progress never animates, and reduced motion makes every appearance instant.
+Motion is minimal and quiet. Only the hero, disclosures and overlays animate; home sections are visible from the first frame (no scroll reveals). Routes change instantly, progress never animates, and reduced motion makes every appearance instant.
 
 **Key Characteristics:**
 - Light-first, tonal layering (white bg, #F5F5F7 surface, #EDEDF0 hover), hairline #D2D2D7 dividers.
@@ -289,7 +289,7 @@ Confident and quiet.
 - **ProgressBar:** a 2px fully rounded line with a hairline track and accent fill. It never animates.
 
 ### Motion
-- Easing is always `cubic-bezier(0.23, 1, 0.32, 1)`. Durations are 300ms for the hero (opacity with an 8px rise), 250ms for home section reveals (once, at 15% in view, no stagger), 220ms for accordion answers (opacity), 200ms for overlay enter and 150ms for exit and hover colour. Routes change instantly. Under `prefers-reduced-motion`, durations collapse to 0 and only the spinner keeps turning, at 1.5s.
+- Easing is always `cubic-bezier(0.23, 1, 0.32, 1)`. Durations are 300ms for the hero (opacity with an 8px rise), 220ms for accordion answers (opacity), 200ms for overlay enter and 150ms for exit and hover colour. Routes change instantly. Under `prefers-reduced-motion`, durations collapse to 0 and only the spinner keeps turning, at 1.5s.
 
 ## Do's and Don'ts
 
