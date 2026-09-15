@@ -26,14 +26,22 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
   useEffect(() => {
     if (isCalc) return;
     let active = true;
-    import("@/lib/highlightClient")
-      .then(({ highlightOffThread }) => highlightOffThread(code, lang))
-      .then((out) => {
-        if (active) setHighlighted({ source: `${lang}\n${code}`, html: out });
-      })
-      .catch(() => undefined); // plain monospace stays on screen
+    const start = () => {
+      import("@/lib/highlightClient")
+        .then(({ highlightOffThread }) => highlightOffThread(code, lang))
+        .then((out) => {
+          if (active) setHighlighted({ source: `${lang}\n${code}`, html: out });
+        })
+        .catch(() => undefined); // plain monospace stays on screen
+    };
+    // The code is already readable in monospace: highlight once the browser is idle,
+    // so the highlighter and its worker never compete with the lesson's first paint.
+    const idle = typeof window.requestIdleCallback === "function";
+    const handle = idle ? window.requestIdleCallback(start, { timeout: 2000 }) : window.setTimeout(start, 300);
     return () => {
       active = false;
+      if (idle) window.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
     };
   }, [code, lang, isCalc]);
 

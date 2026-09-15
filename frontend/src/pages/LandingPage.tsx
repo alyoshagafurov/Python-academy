@@ -74,10 +74,12 @@ export function LandingPage() {
       {/* 1 — Hero */}
       <section className="pb-20 pt-12 md:pb-32 md:pt-16">
         <Container size="wide">
+          {/* Visible from the first frame (the heading is the largest paint); only
+              an 8px rise, which starts once the lazily loaded motion features arrive. */}
           <m.div
             className="text-center"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ y: 8 }}
+            animate={{ y: 0 }}
             transition={{ duration: d(DURATION.hero), ease: EASE_OUT }}
           >
             <h1 className="mx-auto max-w-[16ch] text-display font-bold text-fg lg:max-w-none">

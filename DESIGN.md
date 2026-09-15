@@ -289,7 +289,7 @@ Confident and quiet.
 - **ProgressBar:** a 2px fully rounded line with a hairline track and accent fill. It never animates.
 
 ### Motion
-- Easing is always `cubic-bezier(0.23, 1, 0.32, 1)`. Durations are 300ms for the hero (opacity with an 8px rise), 220ms for accordion answers (opacity), 200ms for overlay enter and 150ms for exit and hover colour. Routes change instantly. Under `prefers-reduced-motion`, durations collapse to 0 and only the spinner keeps turning, at 1.5s.
+- Easing is always `cubic-bezier(0.23, 1, 0.32, 1)`. Durations are 300ms for the hero (an 8px rise only; the heading is visible from the first frame), 220ms for accordion answers (opacity), 200ms for overlay enter and 150ms for exit and hover colour. Routes change instantly. Under `prefers-reduced-motion`, durations collapse to 0 and only the spinner keeps turning, at 1.5s.
 
 ## Do's and Don'ts
 
