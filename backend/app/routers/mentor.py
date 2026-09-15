@@ -38,7 +38,7 @@ async def _check_rate(who: str) -> None:
     if used >= settings.mentor_rate_per_hour:
         raise HTTPException(
             status_code=429,
-            detail="Слишком много подсказок за час — сделай паузу и попробуй сам 🙂",
+            detail="Слишком много подсказок за час — сделай паузу и попробуй сам.",
         )
 
 
