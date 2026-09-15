@@ -297,7 +297,11 @@ export function LessonPage() {
                 value={ownWords}
                 onChange={(e) => setOwnWords(e.target.value)}
                 rows={3}
-                placeholder="Например: переменная — это коробка с именем, в которую кладёшь значение…"
+                placeholder={
+                  lang === "math"
+                    ? "Например: процент — это сотая часть, поэтому 10% от 250 — это 25…"
+                    : "Например: переменная — это коробка с именем, в которую кладёшь значение…"
+                }
                 className="mt-3 w-full resize-y rounded-xl border border-line bg-bg px-4 py-3 text-body text-fg placeholder:text-fg-muted"
               />
               {ownWords.trim().length > 12 && (

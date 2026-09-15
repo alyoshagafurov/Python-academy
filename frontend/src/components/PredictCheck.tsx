@@ -98,7 +98,8 @@ export function PredictCheck({
                 showRight ? <span className="text-fg">Верно</span> : showWrong ? <span className="text-fg">Неверно</span> : null
               }
             >
-              <span className="font-mono">{opt}</span>
+              {/* Code outputs read as code; math answers are ordinary sentences. */}
+              <span className={cn(lang !== "math" && "font-mono")}>{opt}</span>
             </GroupedRow>
           );
         })}
