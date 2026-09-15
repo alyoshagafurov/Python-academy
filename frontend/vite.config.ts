@@ -19,6 +19,11 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
+          // One chunk per grammar: Shiki loads on demand from CodeBlock, and no
+          // single chunk crosses Rollup's 500 kB warning.
+          const lang = id.match(/(?:@shikijs[\\/]langs[\\/]dist|shiki[\\/]dist[\\/]langs)[\\/]([\w-]+)\.mjs/);
+          // bash.mjs only re-exports shellscript; share its chunk instead of emitting an empty one.
+          if (lang) return `shiki-lang-${lang[1] === "bash" ? "shellscript" : lang[1]}`;
           if (/shiki|oniguruma|@shikijs|vscode-textmate|vscode-oniguruma/.test(id))
             return "shiki";
           if (/framer-motion|(\/|\\)motion(\/|\\)/.test(id)) return "motion";

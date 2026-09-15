@@ -8,30 +8,58 @@ interface ThemeCtx {
 }
 
 const Ctx = createContext<ThemeCtx | null>(null);
-const STORAGE_KEY = "pkh-theme";
 
-function initialTheme(): Theme {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === "dark" || saved === "light") return saved;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+/** Stores only an explicit user choice. v2: the previous key recorded "dark" for
+ *  every visitor, which would pin returning users to the old default. The same
+ *  key is read by the inline script in index.html before first paint. */
+const STORAGE_KEY = "pkh-theme-v2";
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+
+function readSaved(): Theme | null {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved === "dark" || saved === "light" ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+function systemTheme(): Theme {
+  return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(initialTheme);
+  const [choice, setChoice] = useState<Theme | null>(readSaved);
+  const [system, setSystem] = useState<Theme>(systemTheme);
+  const theme = choice ?? system;
+
+  // Follow the OS setting live while the user has not picked a theme.
+  useEffect(() => {
+    const mq = window.matchMedia(DARK_QUERY);
+    const onChange = () => setSystem(mq.matches ? "dark" : "light");
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", theme === "dark");
-    localStorage.setItem(STORAGE_KEY, theme);
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "dark" ? "#07070c" : "#f6f6fb");
+    const bg = getComputedStyle(root).getPropertyValue("--bg").trim();
+    if (meta && bg) meta.setAttribute("content", bg);
   }, [theme]);
 
-  return (
-    <Ctx.Provider value={{ theme, toggle: () => setTheme((t) => (t === "dark" ? "light" : "dark")) }}>
-      {children}
-    </Ctx.Provider>
-  );
+  const toggle = () => {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setChoice(next);
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      /* private mode: the choice lasts for this session only */
+    }
+  };
+
+  return <Ctx.Provider value={{ theme, toggle }}>{children}</Ctx.Provider>;
 }
 
 export function useTheme() {

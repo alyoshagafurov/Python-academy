@@ -1,21 +1,31 @@
 <!doctype html>
-<html lang="ru" class="dark">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0b0b12" />
-    <title>Python Knowledge Hub — справочник по Python и backend</title>
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Python Knowledge Hub — Python от первой строки до backend</title>
     <meta
       name="description"
-      content="Дорогой, тёмный и понятный справочник по Python, backend и вебу. Теория с ассоциациями, примеры кода, прогресс и избранное — синхронизировано с ботом."
+      content="Python через примеры из жизни: короткая теория, код и разбор каждой строки. Учиться можно бесплатно, прогресс синхронизирован с Telegram-ботом."
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <script>
+      // Apply the theme before first paint (no flash). Mirrors hooks/useTheme.tsx.
+      (function () {
+        try {
+          var saved = localStorage.getItem("pkh-theme-v2");
+          var dark = saved
+            ? saved === "dark"
+            : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (dark) {
+            document.documentElement.classList.add("dark");
+            document.querySelector('meta[name="theme-color"]').setAttribute("content", "#000000");
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
