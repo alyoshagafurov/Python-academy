@@ -59,4 +59,19 @@ NUMERIC_CHECKS: dict[str, list[tuple[str, str]]] = {
         ("350 * 8 / 100", "practice"),
         ("40 * 150 * 30 / 1000", "challenge"),
     ],
+    # ── Этап 2. Ясное рассуждение ──
+    "math_counterexample": [
+        ("36 / 2", "example"),
+        ("66 / 3", "example"),
+        ("[n for n in (16, 12, 8, 24) if n % 4 == 0 and n % 8 != 0][0]", "challenge"),
+    ],
+    "math_decompose": [
+        ("22 * 6", "example"),
+        ("22 * 35", "example"),
+        ("22 * 6 + 22 * 35", "example"),
+        ("1000 - (22 * 6 + 22 * 35)", "example"),
+        ("20 * 40", "example"),
+        ("(4 + 9) * 30", "practice"),
+        ("(3600 - 900) / 450", "challenge"),
+    ],
 }
