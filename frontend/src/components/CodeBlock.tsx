@@ -11,12 +11,15 @@ interface CodeBlockProps {
 
 /** Lesson code in the showcase grammar: surface token, 12px radius, generous
  *  inset and line numbers. Shiki is imported on demand so it never ships with
- *  pages that show no code. */
+ *  pages that show no code. A math calculation keeps the same surface but stays
+ *  plain monospace with tabular figures: no highlighter, no line numbers. */
 export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) {
   const [html, setHtml] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const isCalc = lang === "math";
 
   useEffect(() => {
+    if (isCalc) return;
     let active = true;
     import("@/lib/shiki")
       .then(({ highlight }) => highlight(code, lang))
@@ -25,7 +28,7 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
     return () => {
       active = false;
     };
-  }, [code, lang]);
+  }, [code, lang, isCalc]);
 
   const copy = async () => {
     await navigator.clipboard.writeText(code);
@@ -38,7 +41,7 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
   return (
     <div className={cn("rounded-xl bg-surface", className)}>
       <div className="flex items-center justify-between pl-6 pr-2 pt-2 sm:pl-8">
-        <span className="font-mono text-caption text-fg-muted">{lang}</span>
+        <span className="font-mono text-caption text-fg-muted">{isCalc ? "" : lang}</span>
         <button
           type="button"
           onClick={copy}
@@ -48,7 +51,10 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
           <span aria-live="polite">{copied ? "Скопировано" : "Копировать"}</span>
         </button>
       </div>
-      {html ? (
+      {isCalc ? (
+        // Focusable so a long line can be scrolled from the keyboard on a narrow screen.
+        <pre tabIndex={0} className={cn("font-mono text-fg tabular", body)}>{code}</pre>
+      ) : html ? (
         <div className={cn("shiki-host shiki-numbered", body)} dangerouslySetInnerHTML={{ __html: html }} />
       ) : (
         <pre className={cn("font-mono text-fg", body)}>{code}</pre>

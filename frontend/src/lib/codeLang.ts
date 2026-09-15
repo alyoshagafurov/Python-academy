@@ -8,10 +8,13 @@ export type CodeLang =
   | "javascript"
   | "json"
   | "bash"
-  | "text";
+  | "text"
+  // A step-by-step calculation, not code: plain monospace, never highlighted.
+  | "math";
 
 /** Pick a sensible language from a course id / track. */
 export function langForCourse(courseId: string): CodeLang {
   if (courseId === "web_htmlcss") return "html";
+  if (courseId.startsWith("math_")) return "math";
   return "python";
 }

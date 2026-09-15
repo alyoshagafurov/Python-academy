@@ -225,12 +225,14 @@ export function LessonPage() {
             )}
 
             {lesson.example && (
-              <LessonSection title="Пример кода">
+              <LessonSection title={lang === "math" ? "Расчёт" : "Пример кода"}>
                 <CodeBlock code={lesson.example} lang={lang} />
                 {lang === "html" && <LivePreview code={lesson.example} />}
                 {lesson.code_explained && (
                   <div className="mt-6">
-                    <h3 className="text-body font-semibold text-fg">Что здесь происходит</h3>
+                    <h3 className="text-body font-semibold text-fg">
+                      {lang === "math" ? "Разбор расчёта" : "Что здесь происходит"}
+                    </h3>
                     <TheoryRenderer html={lesson.code_explained} className="mt-2" />
                   </div>
                 )}

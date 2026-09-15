@@ -286,9 +286,8 @@ samp {
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
   }
-  /* A loading spinner is status, not decoration: keep it turning, slowly. */
+  /* The spinner stays visible as a static status mark; its label carries the meaning. */
   .animate-spin {
-    animation-duration: 1.5s !important;
-    animation-iteration-count: infinite !important;
+    animation: none !important;
   }
 }

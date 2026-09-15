@@ -36,6 +36,6 @@ export function getHighlighter(): Promise<HighlighterCore> {
 /** Highlight code into HTML whose colours follow the active theme via CSS variables. */
 export async function highlight(code: string, lang: CodeLang): Promise<string> {
   const hl = await getHighlighter();
-  const safeLang = lang === "text" ? "python" : lang;
+  const safeLang = lang === "text" || lang === "math" ? "python" : lang;
   return hl.codeToHtml(code, { lang: safeLang, theme: "vitrine" });
 }

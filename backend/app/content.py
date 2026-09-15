@@ -21,6 +21,7 @@ COURSE_META: dict[str, dict] = {
     "python_beginner": {"level": "Новичок",    "level_order": 1, "accent": "#22c55e", "gradient": ["#16a34a", "#22c55e"]},
     "python_minecraft": {"level": "Новичок",    "level_order": 1, "accent": "#65a30d", "gradient": ["#4d7c0f", "#84cc16"]},
     "web_htmlcss":      {"level": "Новичок",    "level_order": 1, "accent": "#ec4899", "gradient": ["#db2777", "#f472b6"]},
+    "math_thinking":    {"level": "Новичок",    "level_order": 1, "accent": "#2563eb", "gradient": ["#1d4ed8", "#3b82f6"]},
     "web_python":       {"level": "Средний",    "level_order": 2, "accent": "#3b82f6", "gradient": ["#2563eb", "#38bdf8"]},
     "python_student":   {"level": "Продвинутый", "level_order": 3, "accent": "#a855f7", "gradient": ["#7c3aed", "#c084fc"]},
 }

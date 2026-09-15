@@ -35,3 +35,6 @@ backend/data/
 # Books (copyrighted source material — never commit)
 книги/
 books/
+
+# Impeccable local build state
+.impeccable/build/
