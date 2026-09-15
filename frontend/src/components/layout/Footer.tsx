@@ -79,7 +79,7 @@ function FooterColumn({ title, children }: { title: string; children: ReactNode 
   return (
     <nav aria-label={title}>
       <h2 className="text-caption font-semibold text-fg">{title}</h2>
-      <ul role="list" className="mt-3">
+      <ul className="mt-3">
         {children}
       </ul>
     </nav>

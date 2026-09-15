@@ -54,15 +54,16 @@ export function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  // Back/forward or an edited address bar: follow the URL.
+  // Back/forward or an edited address bar: follow the URL (adjusted during render).
   const urlQuery = params.get("q") ?? "";
-  useEffect(() => {
+  const [seenUrlQuery, setSeenUrlQuery] = useState(urlQuery);
+  if (seenUrlQuery !== urlQuery) {
+    setSeenUrlQuery(urlQuery);
     if (urlQuery !== query) {
       setInput(urlQuery);
       setQuery(urlQuery);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlQuery]);
+  }
 
   const { data, isFetching, isError, refetch } = useQuery({
     queryKey: ["search", query],
@@ -97,7 +98,6 @@ export function SearchPage() {
           <input
             id="search-input"
             type="search"
-            autoFocus
             autoComplete="off"
             enterKeyHint="search"
             value={input}

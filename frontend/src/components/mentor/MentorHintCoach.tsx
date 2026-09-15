@@ -35,10 +35,23 @@ export function MentorHintCoach({
     }
   };
 
-  // First rung on open.
+  // First rung on open (state is set only when the request settles).
   useEffect(() => {
-    void fetchNext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let active = true;
+    api
+      .mentorHint(courseId, lessonId)
+      .then((next) => {
+        if (active) setHint(next);
+      })
+      .catch((e: unknown) => {
+        if (active) setError(e instanceof ApiError ? e.message : "Не удалось получить подсказку.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [courseId, lessonId]);
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, RotateCcw, X } from "lucide-react";
 import { api } from "@/lib/api";
 import type { LessonCheck } from "@/lib/types";
@@ -29,14 +29,10 @@ export function PredictCheck({
   const [usedMentor, setUsedMentor] = useState(false);
   const [showCoach, setShowCoach] = useState(false);
 
+  // A new lesson remounts this component (keyed by lesson in LessonPage), so the
+  // answer, mentor and coach state always start fresh.
   const correct = picked === check.correct;
   const wrong = picked !== null && !correct;
-
-  useEffect(() => {
-    setPicked(null);
-    setUsedMentor(false);
-    setShowCoach(false);
-  }, [check.question, lessonId]);
 
   const choose = (i: number) => {
     const isCorrect = i === check.correct;

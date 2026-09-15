@@ -216,7 +216,7 @@ export function LandingPage() {
             <h2 id="faq-title" className={h2}>
               Частые вопросы
             </h2>
-            <ul role="list" className="mt-10 border-t border-line">
+            <ul className="mt-10 border-t border-line">
               {faq.map((f) => (
                 <FaqItem key={f.q} q={f.q} a={f.a} />
               ))}

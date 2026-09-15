@@ -395,6 +395,19 @@ def test_robots_txt(client):
         assert f"Disallow: {path}" in text
 
 
+def test_responses_are_compressed(client):
+    r = client.get("/api/courses", headers={"accept-encoding": "gzip"})
+    assert r.header("content-encoding") == "gzip"
+
+
+def test_built_assets_are_cached_for_a_year(client):
+    (FRONTEND_DIR / "assets" / "index-abc123.js").write_text("console.log('asset');\n", encoding="utf-8")
+    r = client.get("/assets/index-abc123.js")
+    assert r.status == 200
+    assert r.header("cache-control") == "public, max-age=31536000, immutable"
+    assert client.get("/courses").header("cache-control") == "no-cache"
+
+
 # ─────────────────────────── databases on a volume ─────────────────────────
 
 _RESTART_SCRIPT = """

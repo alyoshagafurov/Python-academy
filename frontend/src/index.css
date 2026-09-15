@@ -276,6 +276,14 @@ samp {
   user-select: none;
 }
 
+/* Tailwind's preflight sets list-style: none, and Safari then stops announcing
+   <ul>/<ol> as lists. A zero-width marker keeps the list semantics without a
+   visible bullet, so no element needs an explicit role="list". */
+ul,
+ol {
+  list-style-type: "\200B";
+}
+
 /* ─────────────────────────── Reduced motion ────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -24,7 +24,7 @@ export function ProPage() {
         </p>
 
         <h2 className="mt-12 text-body font-semibold text-fg">Что планируем в PRO</h2>
-        <ul role="list" className="mt-4 border-t border-line">
+        <ul className="mt-4 border-t border-line">
           {planned.map((item) => (
             <li key={item} className="flex gap-3 border-b border-line py-4 text-body text-fg">
               <Check size={20} strokeWidth={2.25} className="mt-0.5 shrink-0 text-fg-muted" aria-hidden="true" />

@@ -27,9 +27,12 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
 
-  useEffect(() => {
+  // Navigating closes the mobile menu (adjusted during render, not in an effect).
+  const [menuPath, setMenuPath] = useState(pathname);
+  if (menuPath !== pathname) {
+    setMenuPath(pathname);
     setMenuOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-nav backdrop-blur-[20px] backdrop-saturate-[180%]">
@@ -109,7 +112,11 @@ function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { pathname } = useLocation();
   const name = user.username ? `@${user.username}` : `user_${user.id}`;
 
-  useEffect(() => setOpen(false), [pathname]);
+  const [openPath, setOpenPath] = useState(pathname);
+  if (openPath !== pathname) {
+    setOpenPath(pathname);
+    setOpen(false);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -253,7 +260,7 @@ function MobileMenu({ user, onClose, onLogin, onLogout }: MobileMenuProps) {
 
       <Container size="wide" className="flex flex-1 flex-col pb-10 pt-4">
         <nav aria-label="Разделы">
-          <ul role="list">
+          <ul>
             {links.map((l) => (
               <li key={l.to}>
                 <NavLink to={l.to} onClick={onClose} className={rowClass}>

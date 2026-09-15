@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, ChevronRight } from "lucide-react";
 import type { CourseDetail } from "@/lib/types";
@@ -21,11 +21,12 @@ export function LessonToc({ course, currentId, onNavigate }: LessonTocProps) {
     () => new Set(currentStageId !== undefined ? [currentStageId] : []),
   );
 
-  useEffect(() => {
-    if (currentStageId !== undefined) {
-      setOpenStages((prev) => new Set(prev).add(currentStageId));
-    }
-  }, [currentStageId]);
+  // Moving to a lesson in another track opens that track too (adjusted during render).
+  const [seenStageId, setSeenStageId] = useState(currentStageId);
+  if (seenStageId !== currentStageId) {
+    setSeenStageId(currentStageId);
+    if (currentStageId !== undefined) setOpenStages((prev) => new Set(prev).add(currentStageId));
+  }
 
   const toggle = (id: number) =>
     setOpenStages((prev) => {
@@ -37,7 +38,7 @@ export function LessonToc({ course, currentId, onNavigate }: LessonTocProps) {
 
   return (
     <nav aria-label="Темы курса">
-      <ul role="list" className="space-y-1">
+      <ul className="space-y-1">
         {course.stages.map((stage) => {
           const open = openStages.has(stage.id);
           const listId = `toc-stage-${stage.id}`;
@@ -62,7 +63,7 @@ export function LessonToc({ course, currentId, onNavigate }: LessonTocProps) {
               </button>
 
               {open && (
-                <ul id={listId} role="list" className="mb-2 mt-1 space-y-0.5 pl-6">
+                <ul id={listId} className="mb-2 mt-1 space-y-0.5 pl-6">
                   {stage.lessons.map((l) => {
                     const active = l.id === currentId;
                     return (

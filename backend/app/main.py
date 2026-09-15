@@ -16,6 +16,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.settings import settings, startup_problems
 
@@ -68,6 +69,8 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "X-Anon-Id"],
 )
+# JS bundles, lesson JSON and HTML compress several times over on slow mobile links.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 # Added last, so it wraps everything and every response carries the headers.
 app.add_middleware(
     security.SecurityHeadersMiddleware,
@@ -106,9 +109,19 @@ async def sitemap(request: Request) -> Response:
 # ── Serve the built frontend (single-service deploy) ───────────────────────
 # When FRONTEND_DIR points at a built Vite bundle, FastAPI serves the SPA from
 # the same origin as the API — so /api and the app share one Railway service.
+class _ImmutableAssets(StaticFiles):
+    """Vite names built assets by content hash, so a year-long cache is safe."""
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
 if _SERVE_SPA:
     if (_FRONTEND / "assets").is_dir():
-        app.mount("/assets", StaticFiles(directory=_FRONTEND / "assets"), name="assets")
+        app.mount("/assets", _ImmutableAssets(directory=_FRONTEND / "assets"), name="assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa(full_path: str, request: Request):

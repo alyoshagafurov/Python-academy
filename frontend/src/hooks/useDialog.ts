@@ -13,7 +13,9 @@ let scrollLocks = 0;
  */
 export function useDialog(ref: RefObject<HTMLElement | null>, onClose: () => void) {
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     const node = ref.current;

@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 export function GroupedList({ className, ...props }: HTMLAttributes<HTMLUListElement>) {
   return (
     <ul
-      role="list"
       className={cn("overflow-hidden rounded-xl bg-surface", className)}
       {...props}
     />

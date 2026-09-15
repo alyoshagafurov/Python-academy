@@ -11,23 +11,27 @@ interface CodeBlockProps {
 
 /** Lesson code in the showcase grammar: surface token, 12px radius, generous
  *  inset and line numbers. Shiki is imported on demand so it never ships with
- *  pages that show no code. A math calculation keeps the same surface but stays
+ *  pages that show no code, and the code is readable as plain monospace until
+ *  the highlight arrives. A math calculation keeps the same surface but stays
  *  plain monospace with tabular figures: no highlighter, no line numbers. */
 export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) {
-  const [html, setHtml] = useState<string | null>(null);
+  // The highlight is stored with the code it belongs to: the route keeps this
+  // instance across lessons, and another lesson's code must never show.
+  const [highlighted, setHighlighted] = useState<{ source: string; html: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const isCalc = lang === "math";
+  const source = `${lang}\n${code}`;
+  const html = !isCalc && highlighted?.source === source ? highlighted.html : null;
 
   useEffect(() => {
-    // The route keeps this instance across lessons: drop the previous highlight
-    // so another lesson's code never shows while the new one is prepared.
-    setHtml(null);
     if (isCalc) return;
     let active = true;
     import("@/lib/shiki")
       .then(({ highlight }) => highlight(code, lang))
-      .then((out) => active && setHtml(out))
-      .catch(() => active && setHtml(null));
+      .then((out) => {
+        if (active) setHighlighted({ source: `${lang}\n${code}`, html: out });
+      })
+      .catch(() => undefined); // plain monospace stays on screen
     return () => {
       active = false;
     };
@@ -39,7 +43,7 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
     setTimeout(() => setCopied(false), 1600);
   };
 
-  const body = "overflow-x-auto px-6 pb-7 pt-2 text-[0.9375rem] leading-[1.75] sm:px-8 sm:pb-8 sm:text-body";
+  const body = "px-6 pb-7 pt-2 text-[0.9375rem] leading-[1.75] sm:px-8 sm:pb-8 sm:text-body";
 
   return (
     <div className={cn("rounded-xl bg-surface", className)}>
@@ -54,14 +58,17 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
           <span aria-live="polite">{copied ? "Скопировано" : "Копировать"}</span>
         </button>
       </div>
-      {isCalc ? (
-        // Focusable so a long line can be scrolled from the keyboard on a narrow screen.
-        <pre tabIndex={0} className={cn("font-mono text-fg tabular", body)}>{code}</pre>
-      ) : html ? (
-        <div tabIndex={0} className={cn("shiki-host shiki-numbered", body)} dangerouslySetInnerHTML={{ __html: html }} />
-      ) : (
-        <pre tabIndex={0} className={cn("font-mono text-fg", body)}>{code}</pre>
-      )}
+      {/* Long lines scroll inside this region on a narrow screen, so it must take keyboard focus (WCAG 2.1.1). */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrollable region has to be focusable */}
+      <div tabIndex={0} role="region" aria-label={isCalc ? "Расчёт" : `Код, ${lang}`} className="overflow-x-auto rounded-b-xl">
+        {isCalc ? (
+          <pre className={cn("font-mono text-fg tabular", body)}>{code}</pre>
+        ) : html ? (
+          <div className={cn("shiki-host shiki-numbered", body)} dangerouslySetInnerHTML={{ __html: html }} />
+        ) : (
+          <pre className={cn("font-mono text-fg", body)}>{code}</pre>
+        )}
+      </div>
     </div>
   );
 }

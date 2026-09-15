@@ -62,11 +62,18 @@ export function LessonPage() {
     queryKey: ["related", courseId, lid],
     queryFn: () => api.lessonRelated(courseId, lid),
   });
-  useEffect(() => {
+  // The route keeps this component mounted between lessons: a new lesson starts
+  // with its own state (adjusted during render, not in an effect).
+  const lessonKey = `${courseId}:${lid}`;
+  const [shownLesson, setShownLesson] = useState(lessonKey);
+  if (shownLesson !== lessonKey) {
+    setShownLesson(lessonKey);
     setShowMistakes(false);
     setReadFlash(null);
     setOwnWords("");
     setTocOpen(false);
+  }
+  useEffect(() => {
     // Instant, not smooth: no motion on navigation.
     window.scrollTo(0, 0);
   }, [courseId, lid]);
@@ -254,7 +261,9 @@ export function LessonPage() {
             )}
 
             {/* Retrieval practice — predict before you peek (Make It Stick) */}
-            {lesson.check && <PredictCheck check={lesson.check} lang={lang} courseId={courseId} lessonId={lid} />}
+            {lesson.check && (
+              <PredictCheck key={`${courseId}:${lid}`} check={lesson.check} lang={lang} courseId={courseId} lessonId={lid} />
+            )}
 
             {/* Common mistakes — collapsed by default to reduce overwhelm */}
             {lesson.common_mistakes.length > 0 && (
@@ -277,7 +286,6 @@ export function LessonPage() {
                 {showMistakes && (
                   <m.ul
                     id="lesson-mistakes"
-                    role="list"
                     className="space-y-3 pb-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -404,7 +412,7 @@ export function LessonPage() {
               {related && related.items.length > 0 && (
                 <div>
                   <p className="text-caption font-semibold text-fg">Похожие темы</p>
-                  <ul role="list" className="mt-2">
+                  <ul className="mt-2">
                     {related.items.map((r) => (
                       <li key={`${r.course_id}-${r.lesson_id}`}>
                         <Link

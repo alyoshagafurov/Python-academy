@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, m } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -26,12 +26,15 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
     enabled: open && !!config?.dev_auth_enabled,
   });
 
-  useEffect(() => {
+  // Closing clears the last attempt, so the next opening starts clean.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
     if (!open) {
       setError(null);
       setBusy(false);
     }
-  }, [open]);
+  }
 
   const handleDev = async (userId: number, username?: string) => {
     setBusy(true);
