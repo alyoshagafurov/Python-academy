@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Check, X, Sparkles, RotateCcw, GraduationCap } from "lucide-react";
+import { Check, RotateCcw, X } from "lucide-react";
 import { api } from "@/lib/api";
 import type { LessonCheck } from "@/lib/types";
+import type { CodeLang } from "@/lib/codeLang";
 import { CodeBlock } from "@/components/CodeBlock";
-import type { CodeLang } from "@/lib/shiki";
 import { MentorHintCoach } from "@/components/mentor/MentorHintCoach";
+import { Button } from "@/components/ui/Button";
+import { GroupedList, GroupedRow } from "@/components/ui/GroupedList";
 import { cn } from "@/lib/utils";
 
 /**
@@ -57,121 +58,85 @@ export function PredictCheck({
   };
 
   return (
-    <section className="mt-8">
-      <div className="overflow-hidden rounded-2xl border border-primary/30 bg-primary-soft/30">
-        <div className="flex items-center gap-2 px-5 pt-5 text-sm font-bold uppercase tracking-wide text-primary">
-          <Sparkles size={15} /> Угадай, прежде чем смотреть
-        </div>
-        <div className="px-5 pb-5 pt-2">
-          <p className="font-semibold text-fg">{check.question}</p>
+    <section className="mt-12" aria-labelledby={`check-${lessonId}`}>
+      <p className="text-caption text-fg-muted">Угадай, прежде чем смотреть</p>
+      <h2 id={`check-${lessonId}`} className="mt-1 text-title3 font-semibold text-fg">
+        {check.question}
+      </h2>
 
-          {check.code && (
-            <div className="mt-3">
-              <CodeBlock code={check.code} lang={lang} />
-            </div>
-          )}
+      {check.code && <CodeBlock code={check.code} lang={lang} className="mt-4" />}
 
-          <div className="mt-4 grid gap-2">
-            {check.options.map((opt, i) => {
-              const isCorrect = i === check.correct;
-              const isPicked = i === picked;
-              const locked = correct; // only lock after the right answer
-              return (
-                <button
-                  key={i}
-                  disabled={locked}
-                  onClick={() => choose(i)}
+      <GroupedList className="mt-4" aria-label="Варианты ответа">
+        {check.options.map((opt, i) => {
+          const isCorrect = i === check.correct;
+          const isPicked = i === picked;
+          const showRight = correct && isCorrect;
+          const showWrong = wrong && isPicked;
+          return (
+            <GroupedRow
+              key={i}
+              onClick={() => choose(i)}
+              disabled={correct}
+              pressed={isPicked}
+              className={cn(showRight && "disabled:opacity-100")}
+              leading={
+                <span
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all",
-                    !correct && "border-border bg-card hover:border-primary/50 hover:bg-card-hover",
-                    correct && isCorrect && "border-success/50 bg-success/10 text-fg",
-                    correct && !isCorrect && "border-border bg-card opacity-50",
-                    wrong && isPicked && "border-red-400/50 bg-red-400/10 text-fg",
+                    "grid h-7 w-7 place-items-center rounded-full border text-caption",
+                    showRight
+                      ? "border-success text-success"
+                      : showWrong
+                        ? "border-danger text-danger"
+                        : "border-line text-fg-muted",
                   )}
+                  aria-hidden="true"
                 >
-                  <span
-                    className={cn(
-                      "grid h-6 w-6 shrink-0 place-items-center rounded-md border text-xs font-bold",
-                      correct && isCorrect
-                        ? "border-success bg-success text-white"
-                        : wrong && isPicked
-                          ? "border-red-400 bg-red-400 text-white"
-                          : "border-border text-fg-subtle",
-                    )}
-                  >
-                    {correct && isCorrect ? (
-                      <Check size={13} />
-                    ) : wrong && isPicked ? (
-                      <X size={13} />
-                    ) : (
-                      String.fromCharCode(65 + i)
-                    )}
-                  </span>
-                  <span className="font-mono">{opt}</span>
-                </button>
-              );
-            })}
+                  {showRight ? <Check size={16} strokeWidth={2.5} /> : showWrong ? <X size={16} strokeWidth={2.5} /> : String.fromCharCode(65 + i)}
+                </span>
+              }
+              trailing={
+                showRight ? <span className="text-fg">Верно</span> : showWrong ? <span className="text-fg">Неверно</span> : null
+              }
+            >
+              <span className="font-mono">{opt}</span>
+            </GroupedRow>
+          );
+        })}
+      </GroupedList>
+
+      <div aria-live="polite">
+        {/* Correct → reveal + explanation */}
+        {correct && (
+          <div className="mt-4 rounded-xl bg-surface p-5">
+            <p className="flex items-center gap-2 text-body font-semibold text-fg">
+              <Check size={18} strokeWidth={2.5} className="text-success" aria-hidden="true" />
+              {usedMentor ? "Разобрался — это и есть учёба!" : "В точку!"}
+            </p>
+            {check.explanation && <p className="mt-2 text-body text-fg-muted">{check.explanation}</p>}
+            <button
+              type="button"
+              onClick={() => setPicked(null)}
+              className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-body font-medium text-link hover:underline"
+            >
+              <RotateCcw size={16} aria-hidden="true" />
+              Ещё раз
+            </button>
           </div>
+        )}
 
-          {/* Correct → reveal + explanation */}
-          <AnimatePresence>
-            {correct && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-4 rounded-xl border border-success/30 bg-card p-4"
-              >
-                <div className="font-semibold text-success">
-                  {usedMentor ? "✅ Разобрался — это и есть учёба!" : "✅ В точку!"}
-                </div>
-                {check.explanation && (
-                  <p className="mt-1.5 text-sm text-fg-muted">{check.explanation}</p>
-                )}
-                <button
-                  onClick={() => setPicked(null)}
-                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-                >
-                  <RotateCcw size={14} /> Ещё раз
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Wrong → no answer; offer the Socratic mentor */}
-          <AnimatePresence>
-            {wrong && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-4"
-              >
-                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
-                  <span className="text-sm font-medium text-fg">🙂 Не сошлось — это нормально.</span>
-                  <div className="ml-auto flex gap-2">
-                    <button
-                      onClick={retry}
-                      className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-fg-muted hover:bg-card-hover hover:text-fg"
-                    >
-                      Попробовать снова
-                    </button>
-                    {!showCoach && (
-                      <button
-                        onClick={openCoach}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-fg hover:brightness-110"
-                      >
-                        <GraduationCap size={15} /> Разобрать вместе
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {showCoach && (
-                  <MentorHintCoach courseId={courseId} lessonId={lessonId} onTryAgain={retry} />
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* Wrong → no answer; offer the Socratic mentor */}
+        {wrong && (
+          <div className="mt-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="mr-auto text-body text-fg">Не сошлось — это нормально.</p>
+              <Button variant="secondary" onClick={retry}>
+                Попробовать снова
+              </Button>
+              {!showCoach && <Button onClick={openCoach}>Разобрать вместе</Button>}
+            </div>
+            {showCoach && <MentorHintCoach courseId={courseId} lessonId={lessonId} onTryAgain={retry} />}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { GraduationCap, ArrowRight, Check, Loader2 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { MentorHint } from "@/lib/types";
+import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
 /**
@@ -42,65 +42,53 @@ export function MentorHintCoach({
   }, [courseId, lessonId]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: "auto" }}
-      className="mt-4 overflow-hidden rounded-2xl border border-primary/30 bg-card"
-    >
-      <div className="flex items-center gap-2 border-b border-border-soft px-4 py-2.5">
-        <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary-soft text-primary">
-          <GraduationCap size={16} />
-        </div>
-        <span className="text-sm font-semibold text-fg">Наставник</span>
+    <div className="mt-4 rounded-xl bg-surface">
+      <div className="flex min-h-11 items-center justify-between gap-3 border-b border-line px-5">
+        <span className="text-caption font-semibold text-fg">Наставник</span>
         {hint && (
-          <span className="ml-auto flex items-center gap-1">
+          <span className="flex items-center gap-1.5">
+            <span className="sr-only">
+              Шаг {hint.rung} из {hint.total}
+            </span>
             {Array.from({ length: hint.total }).map((_, i) => (
               <span
                 key={i}
-                className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  i < hint.rung ? "bg-primary" : "bg-border",
-                )}
+                aria-hidden="true"
+                className={cn("h-1.5 w-1.5 rounded-full", i < hint.rung ? "bg-accent" : "bg-line")}
               />
             ))}
           </span>
         )}
       </div>
 
-      <div className="p-4">
+      <div className="p-5" aria-live="polite">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-fg-muted">
-            <Loader2 size={15} className="animate-spin" /> Думаю, как подсказать…
-          </div>
+          <p className="flex items-center gap-2 text-body text-fg-muted">
+            <Spinner label="Загрузка подсказки" /> Думаю, как подсказать…
+          </p>
         ) : error ? (
-          <p className="text-sm text-amber-500">{error}</p>
+          <p role="alert" className="text-body text-danger">
+            {error}
+          </p>
         ) : hint ? (
           <>
-            <p className="whitespace-pre-line text-fg">{hint.text}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                onClick={onTryAgain}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-fg hover:brightness-110"
-              >
-                <Check size={15} /> Понял, попробую
-              </button>
+            <p className="whitespace-pre-line text-body text-fg">{hint.text}</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button onClick={onTryAgain}>Понял, попробую</Button>
               {hint.can_escalate && (
-                <button
-                  onClick={fetchNext}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-border px-4 py-2 text-sm font-medium text-fg-muted hover:bg-card-hover hover:text-fg"
-                >
-                  Ещё намёк <ArrowRight size={14} />
-                </button>
+                <Button variant="secondary" onClick={fetchNext} className="bg-bg hover:bg-surface-hover">
+                  Ещё намёк
+                </Button>
               )}
             </div>
             {hint.is_solution && !hint.ai_available && (
-              <p className="mt-3 text-xs text-fg-subtle">
+              <p className="mt-4 text-caption text-fg-muted">
                 Это полный разбор. Перечитай шаги выше — и попробуй похожее сам.
               </p>
             )}
           </>
         ) : null}
       </div>
-    </motion.div>
+    </div>
   );
 }

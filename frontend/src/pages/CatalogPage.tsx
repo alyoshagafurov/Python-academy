@@ -3,13 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { CourseCard } from "@/components/CourseCard";
 import { PageTransition } from "@/components/PageTransition";
+import { Button } from "@/components/ui/Button";
+import { Container } from "@/components/ui/Container";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState, ErrorState } from "@/components/ui/State";
 import { cn } from "@/lib/utils";
 
 const LEVELS = ["Все", "Новичок", "Средний", "Продвинутый"] as const;
 
 export function CatalogPage() {
-  const { data } = useQuery({ queryKey: ["courses"], queryFn: api.courses });
+  const { data, isError, refetch } = useQuery({ queryKey: ["courses"], queryFn: api.courses });
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("Все");
 
   const filtered = useMemo(() => {
@@ -20,25 +23,26 @@ export function CatalogPage() {
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-fg sm:text-4xl">
-          Каталог курсов
-        </h1>
-        <p className="mt-2 text-fg-muted">
-          От «Установки Python» до Flask и backend-архитектуры.
+      <Container className="pb-24 pt-12 md:pt-20">
+        <h1 className="text-title1 font-bold tracking-[-0.025em] text-fg">Курсы</h1>
+        <p className="mt-3 max-w-[52ch] text-body text-fg-muted">
+          От установки Python до Flask и backend-архитектуры. Начни с курса своего уровня.
         </p>
 
-        {/* Level filter */}
-        <div className="mt-7 flex flex-wrap gap-2">
+        <div
+          role="group"
+          aria-label="Уровень"
+          className="mt-8 inline-flex max-w-full rounded-xl bg-surface p-1"
+        >
           {LEVELS.map((l) => (
             <button
               key={l}
+              type="button"
+              aria-pressed={level === l}
               onClick={() => setLevel(l)}
               className={cn(
-                "rounded-full border px-4 py-2 text-sm font-semibold transition-all",
-                level === l
-                  ? "border-transparent bg-primary text-primary-fg"
-                  : "border-border text-fg-muted hover:bg-card-hover hover:text-fg",
+                "min-h-11 rounded-lg px-3 text-caption font-medium transition-colors duration-150 ease-out sm:px-4 sm:text-body",
+                level === l ? "bg-bg text-fg shadow-popover" : "text-fg-muted hover:text-fg",
               )}
             >
               {l}
@@ -46,16 +50,28 @@ export function CatalogPage() {
           ))}
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {data
-            ? filtered.map((c, i) => <CourseCard key={c.id} course={c} index={i} />)
-            : Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-72" />)}
+        <div className="mt-10">
+          {isError ? (
+            <ErrorState onRetry={() => refetch()} />
+          ) : data && filtered.length === 0 ? (
+            <EmptyState
+              title="Курсов этого уровня пока нет"
+              text="Новые курсы появятся позже. А пока посмотрите остальные."
+              action={
+                <Button variant="secondary" onClick={() => setLevel("Все")}>
+                  Показать все курсы
+                </Button>
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {data
+                ? filtered.map((c) => <CourseCard key={c.id} course={c} />)
+                : Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 rounded-3xl" />)}
+            </div>
+          )}
         </div>
-
-        {data && filtered.length === 0 && (
-          <p className="mt-10 text-center text-fg-muted">Курсов этого уровня пока нет.</p>
-        )}
-      </div>
+      </Container>
     </PageTransition>
   );
 }

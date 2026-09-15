@@ -1,30 +1,23 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useId, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  ArrowLeft,
-  ArrowRight,
-  BookOpen,
-  CheckCircle2,
-  ChevronDown,
-  Circle,
-  PlayCircle,
-  Star,
-} from "lucide-react";
+import { m } from "framer-motion";
+import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
-import { courseCover } from "@/lib/covers";
 import type { LessonBrief, StageNode } from "@/lib/types";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { DURATION, EASE_OUT, useDuration } from "@/lib/motion";
+import { cn, pluralize } from "@/lib/utils";
+import { ButtonLink } from "@/components/ui/Button";
+import { Container } from "@/components/ui/Container";
+import { GroupedList, GroupedRow } from "@/components/ui/GroupedList";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { PageTransition } from "@/components/PageTransition";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/State";
+import { PageTransition } from "@/components/PageTransition";
 
 export function CoursePage() {
   const { courseId = "" } = useParams();
-  const navigate = useNavigate();
-  const { data: course, isLoading } = useQuery({
+  const { data: course, isLoading, isError, refetch } = useQuery({
     queryKey: ["course", courseId],
     queryFn: () => api.course(courseId),
   });
@@ -36,111 +29,95 @@ export function CoursePage() {
     return course.stages[0]?.lessons[0] ?? null;
   }, [course]);
 
+  if (isError) {
+    return (
+      <Container size="text" className="py-20">
+        <ErrorState
+          title="Не удалось открыть курс"
+          text="Курс не найден или сервер не отвечает. Попробуй ещё раз или вернись к списку курсов."
+          onRetry={() => refetch()}
+        />
+      </Container>
+    );
+  }
+
   if (isLoading || !course) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
-        <Skeleton className="h-48 w-full" />
-        <div className="mt-6 space-y-3">
+      <Container size="text" className="pb-24 pt-12 md:pt-20" aria-busy="true">
+        <Skeleton className="h-10 w-2/3" />
+        <Skeleton className="mt-4 h-6 w-full" />
+        <Skeleton className="mt-8 h-12 w-40 rounded-full" />
+        <div className="mt-14 space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full" />
+            <Skeleton key={i} className="h-[52px] w-full" />
           ))}
         </div>
-      </div>
+      </Container>
     );
   }
 
   const pct = course.progress?.percent ?? 0;
   const started = (course.progress?.done ?? 0) > 0;
-  const cover = courseCover(course.id);
+  const meta = [
+    course.level,
+    `${course.stages_count} ${pluralize(course.stages_count, "трек", "трека", "треков")}`,
+    `${course.total_lessons} ${pluralize(course.total_lessons, "тема", "темы", "тем")}`,
+  ];
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <Container size="text" className="pb-24 pt-8 md:pt-12">
         <Link
           to="/courses"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg"
+          className="-ml-1 inline-flex min-h-11 items-center gap-1 text-caption text-link hover:underline"
         >
-          <ArrowLeft size={15} /> Все курсы
+          <ChevronLeft size={16} aria-hidden="true" />
+          Все курсы
         </Link>
 
-        {/* Header */}
-        <div
-          className="relative overflow-hidden rounded-3xl border border-border p-8 text-white"
-          style={{
-            background: `linear-gradient(135deg, ${course.gradient[0]}, ${course.gradient[1]})`,
-          }}
-        >
-          {cover && (
-            <img
-              src={cover}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover opacity-45"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-black/25 to-transparent" />
-          <div className="absolute inset-0 opacity-25 [background:radial-gradient(circle_at_20%_10%,white,transparent_50%)]" />
-          <div className="relative">
-            <div className="flex items-center gap-3">
-              <span className="text-5xl">{course.emoji}</span>
-              <Badge className="bg-black/25 text-white backdrop-blur">{course.level}</Badge>
-            </div>
-            <h1 className="mt-4 text-3xl font-extrabold sm:text-4xl">{course.title}</h1>
-            <p className="mt-2 max-w-2xl text-white/85">{course.description}</p>
-            <div className="mt-4 flex items-center gap-4 text-sm text-white/80">
-              <span className="inline-flex items-center gap-1.5">
-                <BookOpen size={15} /> {course.total_lessons} тем
-              </span>
-              <span>·</span>
-              <span>{course.stages_count} треков</span>
-            </div>
+        <h1 className="mt-6 text-title1 font-bold tracking-[-0.025em] text-fg">{course.title}</h1>
+        {course.description && (
+          <p className="mt-4 max-w-[60ch] text-body text-fg-muted md:text-title3">{course.description}</p>
+        )}
+        <p className="mt-4 text-caption text-fg-muted">{meta.join(" · ")}</p>
 
-            {continueLesson && (
-              <Button
-                size="lg"
-                className="mt-6 bg-white text-black hover:bg-white/90 shadow-none"
-                onClick={() =>
-                  navigate(`/courses/${course.id}/lessons/${continueLesson.id}`)
-                }
-              >
-                {started ? "Продолжить" : "Начать курс"} <ArrowRight size={18} />
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Progress */}
-        {started && (
-          <div className="mt-6 rounded-2xl border border-border bg-card p-5">
-            <div className="mb-2 flex justify-between text-sm">
-              <span className="font-semibold text-fg">Твой прогресс</span>
-              <span className="text-fg-muted">
-                {course.progress?.done} / {course.progress?.total} тем · {pct}%
-              </span>
-            </div>
-            <ProgressBar value={pct} color={course.accent} height={10} />
+        {started && course.progress && (
+          <div className="mt-8 max-w-sm">
+            <p className="text-caption text-fg-muted tabular">
+              Пройдено {course.progress.done} из {course.progress.total} · {pct}%
+            </p>
+            <ProgressBar value={pct} label={`Курс пройден на ${pct}%`} className="mt-2" />
           </div>
         )}
 
-        {/* Curriculum */}
-        <h2 className="mb-4 mt-10 text-2xl font-bold text-fg">Программа курса</h2>
-        <div className="space-y-3">
+        {continueLesson && (
+          <ButtonLink
+            to={`/courses/${course.id}/lessons/${continueLesson.id}`}
+            size="lg"
+            pill
+            className="mt-8"
+          >
+            {started ? "Продолжить" : "Начать"}
+          </ButtonLink>
+        )}
+
+        <h2 className="mt-16 text-title2 font-semibold text-fg">Программа</h2>
+        <div className="mt-6 space-y-6">
           {course.stages.map((stage, i) => (
-            <StageAccordion
+            <StageGroup
               key={stage.id}
               stage={stage}
               courseId={course.id}
-              defaultOpen={
-                i === 0 || stage.lessons.some((l) => l.status === "current")
-              }
+              defaultOpen={i === 0 || stage.lessons.some((l) => l.status === "current")}
             />
           ))}
         </div>
-      </div>
+      </Container>
     </PageTransition>
   );
 }
 
-function StageAccordion({
+function StageGroup({
   stage,
   courseId,
   defaultOpen,
@@ -150,70 +127,79 @@ function StageAccordion({
   defaultOpen: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
+  const d = useDuration();
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+    <section aria-labelledby={`${id}-title`}>
       <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={`${id}-list`}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 px-5 py-4 text-left"
+        className="flex min-h-14 w-full items-center gap-3 rounded-xl text-left"
       >
-        <span className="text-xl">{stage.emoji}</span>
-        <div className="flex-1">
-          <div className="font-semibold text-fg">{stage.title}</div>
-          <div className="text-xs text-fg-subtle">{stage.subtitle}</div>
-        </div>
-        <span className="text-xs text-fg-muted">
-          {stage.done}/{stage.total}
+        <span className="min-w-0 flex-1">
+          <span id={`${id}-title`} className="block text-body font-semibold text-fg">
+            {stage.title}
+          </span>
+          {stage.subtitle && (
+            <span className="mt-0.5 block text-caption text-fg-muted">{stage.subtitle}</span>
+          )}
+        </span>
+        <span className="shrink-0 text-caption text-fg-muted tabular">
+          {stage.done} из {stage.total}
         </span>
         <ChevronDown
-          size={18}
-          className={`text-fg-subtle transition-transform ${open ? "rotate-180" : ""}`}
+          size={20}
+          aria-hidden="true"
+          className={cn("shrink-0 text-fg-muted transition-transform duration-200 ease-out", open && "rotate-180")}
         />
       </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <div className="border-t border-border-soft">
-              {stage.lessons.map((lesson) => (
-                <LessonRow key={lesson.id} lesson={lesson} courseId={courseId} />
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+
+      {open && (
+        <m.div
+          id={`${id}-list`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: d(DURATION.accordion), ease: EASE_OUT }}
+        >
+          <GroupedList className="mt-2">
+            {stage.lessons.map((lesson) => (
+              <LessonRow key={lesson.id} lesson={lesson} courseId={courseId} />
+            ))}
+          </GroupedList>
+        </m.div>
+      )}
+    </section>
   );
 }
 
 function LessonRow({ lesson, courseId }: { lesson: LessonBrief; courseId: string }) {
-  const Icon =
-    lesson.status === "done"
-      ? CheckCircle2
-      : lesson.status === "current"
-        ? PlayCircle
-        : Circle;
+  const done = lesson.status === "done";
+  const current = lesson.status === "current";
   return (
-    <Link
+    <GroupedRow
       to={`/courses/${courseId}/lessons/${lesson.id}`}
-      className="flex items-center gap-3 border-b border-border-soft px-5 py-3 last:border-0 hover:bg-card-hover"
+      leading={
+        <span className="grid w-5 place-items-center">
+          {done ? (
+            <Check size={18} strokeWidth={2.5} className="text-accent" aria-hidden="true" />
+          ) : current ? (
+            <span className="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
+          ) : null}
+        </span>
+      }
+      trailing={
+        <>
+          {lesson.bookmarked && <Bookmark size={16} className="fill-current" aria-label="В избранном" />}
+          <ChevronRight size={18} aria-hidden="true" />
+        </>
+      }
     >
-      <Icon
-        size={18}
-        className={
-          lesson.status === "done"
-            ? "text-success"
-            : lesson.status === "current"
-              ? "text-primary"
-              : "text-fg-subtle"
-        }
-      />
-      <span className="flex-1 text-sm text-fg">{lesson.title}</span>
-      {lesson.bookmarked && <Star size={14} className="fill-accent text-accent" />}
-      <span className="text-xs text-fg-subtle">+{lesson.xp} XP</span>
-    </Link>
+      <span className="line-clamp-2">{lesson.title}</span>
+      {done && <span className="sr-only">, пройдено</span>}
+      {current && <span className="sr-only">, текущая тема</span>}
+    </GroupedRow>
   );
 }

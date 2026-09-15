@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { highlight, type CodeLang } from "@/lib/shiki";
+import type { CodeLang } from "@/lib/codeLang";
 import { cn } from "@/lib/utils";
 
 interface CodeBlockProps {
@@ -9,13 +9,16 @@ interface CodeBlockProps {
   className?: string;
 }
 
+/** Code on the showcase surface (surface token, 12px radius). Shiki is
+ *  imported on demand so it never ships with pages that show no code. */
 export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) {
   const [html, setHtml] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let active = true;
-    highlight(code, lang)
+    import("@/lib/shiki")
+      .then(({ highlight }) => highlight(code, lang))
       .then((out) => active && setHtml(out))
       .catch(() => active && setHtml(null));
     return () => {
@@ -30,34 +33,25 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
   };
 
   return (
-    <div
-      className={cn(
-        "group relative overflow-hidden rounded-2xl border border-border bg-bg-soft",
-        className,
-      )}
-    >
-      <div className="flex items-center justify-between border-b border-border-soft px-4 py-2">
-        <div className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-          <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-          <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-          <span className="ml-2 font-mono text-xs text-fg-subtle">{lang}</span>
-        </div>
+    <div className={cn("rounded-xl bg-surface", className)}>
+      <div className="flex items-center justify-between pl-5 pr-1">
+        <span className="font-mono text-caption text-fg-muted">{lang}</span>
         <button
+          type="button"
           onClick={copy}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-fg-subtle transition-colors hover:bg-card-hover hover:text-fg"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-caption text-fg-muted transition-colors duration-150 ease-out hover:text-fg"
         >
-          {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-          {copied ? "Скопировано" : "Копировать"}
+          {copied ? <Check size={16} className="text-success" aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+          <span aria-live="polite">{copied ? "Скопировано" : "Копировать"}</span>
         </button>
       </div>
       {html ? (
         <div
-          className="shiki-host overflow-x-auto p-4 text-[0.9rem] leading-relaxed"
+          className="shiki-host overflow-x-auto px-5 pb-5 text-[0.9375rem] leading-[1.7]"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       ) : (
-        <pre className="overflow-x-auto p-4 font-mono text-[0.9rem] leading-relaxed text-fg">
+        <pre className="overflow-x-auto px-5 pb-5 font-mono text-[0.9375rem] leading-[1.7] text-fg">
           {code}
         </pre>
       )}
