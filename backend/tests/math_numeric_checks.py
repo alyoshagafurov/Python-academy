@@ -47,6 +47,7 @@ NUMERIC_CHECKS: dict[str, list[tuple[str, str]]] = {
         ("3600 / 12 * 20", "challenge"),
     ],
     "math_unit_price": [
+        ("28 / 1", "example"),
         ("130 / 5", "example"),
         ("28 - 130 / 5", "example"),
         ("(28 - 130 / 5) * 5", "example"),
@@ -125,6 +126,7 @@ NUMERIC_CHECKS: dict[str, list[tuple[str, str]]] = {
     ],
     # ── Этап 4. Деньги во времени ──
     "math_compound_interest": [
+        ("12 / 100", "example"),
         ("10000 * 1.12", "example"),
         ("10000 * 1.12 ** 2", "example"),
         ("10000 * 1.12 ** 3", "example"),

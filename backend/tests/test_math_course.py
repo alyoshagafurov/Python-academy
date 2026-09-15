@@ -30,6 +30,7 @@ CHECK_KINDS = ("practice", "quiz", "challenge")
 EXPECTED_LADDER = ["question", "hint", "hint", "reasoning", "solution"]
 
 # Pictographic emoji, dingbats/symbols blocks, variation selector, ZWJ.
+# Whole blocks on purpose: ✓ ★ ⚠ count as pictograms too and are banned.
 # Arrows (→), maths signs (×, −, ≈) and superscripts are allowed.
 EMOJI_RE = re.compile("[\U0001F000-\U0001FAFF☀-➿⬀-⯿️‍]")
 TAG_RE = re.compile(r"<\s*(/?)\s*([a-zA-Z][a-zA-Z0-9]*)([^>]*)>")
@@ -84,7 +85,19 @@ def correct_option(lesson, kind: str) -> str:
 
 
 def has_calculation(text: str) -> bool:
-    return "=" in text and bool(NUMBER_RE.search(text))
+    return ("=" in text or "≈" in text) and bool(NUMBER_RE.search(text))
+
+
+def calculation_results(text: str) -> list[float]:
+    """Numbers after the last «=» or «≈» of every calculation line: the results.
+    A tail that is still a formula («≈ 72 ÷ ставка») is not a result; a minus
+    stays allowed there because «= −50» is a signed result."""
+    results = []
+    for line in (text or "").splitlines():
+        parts = re.split(r"[=≈]", line)
+        if len(parts) > 1 and not re.search(r"[×÷+]", parts[-1]):
+            results.extend(parse_ru_numbers(parts[-1]))
+    return results
 
 
 # ───────────────────────────── fixtures ─────────────────────────────
@@ -200,6 +213,8 @@ def test_checks_have_no_code_field(lessons):
 def test_correct_answers_spread_per_stage(course):
     for stage in course.stages:
         indices = [getattr(l, k).correct for l in stage.lessons for k in CHECK_KINDS if getattr(l, k)]
+        if not indices:
+            pytest.fail(f"этап {stage.id}: нет проверок")
         counts = Counter(indices)
         worst, n = counts.most_common(1)[0]
         assert n / len(indices) <= 0.40, (
@@ -247,6 +262,18 @@ def test_every_calculation_is_covered(lessons):
             if NUMBER_RE.search(correct_option(l, kind)) and kind not in targets:
                 missing.append(f"{l.topic}: {kind} (верный ответ с числом)")
     assert missing == []
+
+
+def test_every_calculation_result_is_checked(lessons):
+    """Each result printed after «=» or «≈» needs its own expression, so a typo
+    in any step fails even when another step of the same example is checked."""
+    unchecked = []
+    for l in lessons:
+        values = [safe_eval(e) for e, target in NUMERIC_CHECKS.get(l.topic, []) if target == "example"]
+        for number in calculation_results(l.example):
+            if not any(abs(v - number) <= TOLERANCE for v in values):
+                unchecked.append(f"{l.topic}: {number:g}")
+    assert unchecked == []
 
 
 def test_numeric_checks_match_text(lessons):

@@ -18,6 +18,8 @@ from app import content
 
 # Replies are plain text: lesson content of older courses may carry emoji
 # (e.g. at the start of an analogy), so strip them from what the mentor says.
+# Whole symbol blocks on purpose: check marks, stars and warning signs go too;
+# arrows, maths signs and superscripts stay.
 _EMOJI_RE = re.compile("[\\U0001F000-\\U0001FAFF\\u2600-\\u27BF\\u2B00-\\u2BFF\\uFE0F\\u200D]+ ?")
 
 
