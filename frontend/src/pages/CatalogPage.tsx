@@ -42,7 +42,7 @@ export function CatalogPage() {
               onClick={() => setLevel(l)}
               className={cn(
                 "min-h-11 rounded-lg px-3 text-caption font-medium transition-colors duration-150 ease-out sm:px-4 sm:text-body",
-                level === l ? "bg-bg text-fg shadow-popover" : "text-fg-muted hover:text-fg",
+                level === l ? "bg-bg text-fg shadow-sm" : "text-fg-muted hover:text-fg",
               )}
             >
               {l}

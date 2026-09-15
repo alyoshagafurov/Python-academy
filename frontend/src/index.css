@@ -241,7 +241,16 @@ a {
   overflow-wrap: anywhere;
 }
 
-/* ───────────────────────────── Shiki ───────────────────────────────── */
+/* ───────────────────────────── Code ────────────────────────────────── */
+/* Beginners retype what they see: never draw `>=` or `!=` as ligatures. */
+pre,
+code,
+kbd,
+samp {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+}
+
 .shiki-host .shiki {
   margin: 0;
   background: transparent !important;
