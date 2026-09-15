@@ -9,8 +9,9 @@ interface CodeBlockProps {
   className?: string;
 }
 
-/** Code on the showcase surface (surface token, 12px radius). Shiki is
- *  imported on demand so it never ships with pages that show no code. */
+/** Lesson code in the showcase grammar: surface token, 12px radius, generous
+ *  inset and line numbers. Shiki is imported on demand so it never ships with
+ *  pages that show no code. */
 export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) {
   const [html, setHtml] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -32,9 +33,11 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
     setTimeout(() => setCopied(false), 1600);
   };
 
+  const body = "overflow-x-auto px-6 pb-7 pt-2 text-[0.9375rem] leading-[1.75] sm:px-8 sm:pb-8 sm:text-body";
+
   return (
     <div className={cn("rounded-xl bg-surface", className)}>
-      <div className="flex items-center justify-between pl-5 pr-1">
+      <div className="flex items-center justify-between pl-6 pr-2 pt-2 sm:pl-8">
         <span className="font-mono text-caption text-fg-muted">{lang}</span>
         <button
           type="button"
@@ -46,14 +49,9 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
         </button>
       </div>
       {html ? (
-        <div
-          className="shiki-host shiki-numbered overflow-x-auto px-5 pb-6 text-[0.9375rem] leading-[1.75] sm:px-6"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+        <div className={cn("shiki-host shiki-numbered", body)} dangerouslySetInnerHTML={{ __html: html }} />
       ) : (
-        <pre className="overflow-x-auto px-5 pb-5 font-mono text-[0.9375rem] leading-[1.7] text-fg">
-          {code}
-        </pre>
+        <pre className={cn("font-mono text-fg", body)}>{code}</pre>
       )}
     </div>
   );
