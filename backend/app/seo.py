@@ -39,6 +39,8 @@ _WS_RE = re.compile(r"\s+")
 _TITLE_RE = re.compile(r"<title>.*?</title>", re.S)
 _DESCRIPTION_RE = re.compile(r'\s*<meta\s+name="description"[^>]*>', re.S)
 _STYLESHEET_LINK_RE = re.compile(r'<link\b[^>]*\brel="stylesheet"[^>]*\bhref="(/assets/[^"]+\.css)"[^>]*/?>')
+# The code font used in the first paint (home showcase, lesson code): latin + cyrillic.
+_CODE_FONT_RE = re.compile(r"url\((/assets/jetbrains-mono-(?:latin|cyrillic)-wght-normal-[\w-]+\.woff2)\)")
 
 
 def inline_local_stylesheets(template: str, root: Path) -> str:
@@ -47,15 +49,21 @@ def inline_local_stylesheets(template: str, root: Path) -> str:
     The stylesheet was the only render-blocking request before first paint (about
     300 ms on a slow mobile link). Inline styles are allowed by the CSP. Links to
     missing files or other origins are left as they are; «</style» inside the CSS
-    is escaped so it can never close the tag."""
+    is escaped so it can never close the tag. The code font files referenced by the
+    CSS are preloaded, so they download alongside the JS instead of after it."""
     root = Path(root).resolve()
 
     def replace(match: re.Match) -> str:
         path = (root / match.group(1).lstrip("/")).resolve()
         if not path.is_relative_to(root) or not path.is_file():
             return match.group(0)
-        css = path.read_text(encoding="utf-8").replace("</style", "<\\/style")
-        return f"<style>{css}</style>"
+        raw = path.read_text(encoding="utf-8")
+        preloads = "".join(
+            f'<link rel="preload" href="{html.escape(url, quote=True)}" as="font" type="font/woff2" crossorigin />\n    '
+            for url in dict.fromkeys(_CODE_FONT_RE.findall(raw))
+        )
+        css = raw.replace("</style", "<\\/style")
+        return f"{preloads}<style>{css}</style>"
 
     return _STYLESHEET_LINK_RE.sub(replace, template)
 

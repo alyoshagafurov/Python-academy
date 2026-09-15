@@ -484,6 +484,26 @@ def test_local_stylesheets_are_inlined(tmp_path):
     assert '<link rel="stylesheet" href="https://fonts.example/x.css">' in out
 
 
+def test_code_font_is_preloaded(tmp_path):
+    """The code font is needed for the first paint of the home showcase and lesson
+    code; preloading it starts the download with the JS instead of after it."""
+    from app import seo
+
+    (tmp_path / "assets").mkdir()
+    css = (
+        "@font-face{font-family:JetBrains Mono Variable;src:url(/assets/jetbrains-mono-cyrillic-wght-normal-AAA.woff2) format('woff2-variations')}"
+        "@font-face{font-family:JetBrains Mono Variable;src:url(/assets/jetbrains-mono-latin-wght-normal-BBB.woff2) format('woff2-variations')}"
+        "@font-face{font-family:JetBrains Mono Variable;src:url(/assets/jetbrains-mono-greek-wght-normal-CCC.woff2) format('woff2-variations')}"
+        "@font-face{font-family:Onest Variable;src:url(/assets/onest-latin-wght-normal-DDD.woff2) format('woff2-variations')}"
+    )
+    (tmp_path / "assets" / "index-abc.css").write_text(css, encoding="utf-8")
+    template = '<head>\n    <link rel="stylesheet" crossorigin href="/assets/index-abc.css">\n  </head>'
+    out = seo.inline_local_stylesheets(template, tmp_path)
+    for name in ("jetbrains-mono-latin-wght-normal-BBB", "jetbrains-mono-cyrillic-wght-normal-AAA"):
+        assert f'<link rel="preload" href="/assets/{name}.woff2" as="font" type="font/woff2" crossorigin />' in out
+    assert "greek" not in out.split("<style>")[0] and "onest" not in out.split("<style>")[0]
+
+
 def test_inlined_css_cannot_close_the_style_tag(tmp_path):
     from app import seo
 
