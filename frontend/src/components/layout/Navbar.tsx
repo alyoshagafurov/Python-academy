@@ -164,7 +164,7 @@ function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
         onClick={() => setOpen((v) => !v)}
         className="grid h-11 w-11 place-items-center rounded-xl"
       >
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-surface text-caption font-semibold text-fg">
+        <span className="grid h-8 w-8 place-items-center rounded-full border border-line bg-surface text-caption font-semibold text-fg">
           {name.replace("@", "").charAt(0).toUpperCase()}
         </span>
       </button>

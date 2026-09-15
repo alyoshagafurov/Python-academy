@@ -38,10 +38,10 @@ const tokenClass: Record<Kind, string> = {
 
 export function LessonShowcase() {
   return (
-    <figure className="mx-auto w-full max-w-[980px] rounded-3xl bg-surface px-6 py-8 text-left sm:px-10 sm:py-12 md:px-16 md:py-16">
+    <figure className="mx-auto w-full max-w-[980px] rounded-3xl bg-surface px-6 py-8 text-left sm:px-10 sm:py-10 md:px-14 md:py-10">
       <figcaption>
         <p className="text-caption text-fg-muted">Аналогия</p>
-        <p className="mt-2 max-w-[44ch] text-title3 text-fg">{ANALOGY}</p>
+        <p className="mt-2 max-w-[60ch] text-title3 text-fg">{ANALOGY}</p>
       </figcaption>
 
       <pre className="mt-8 overflow-x-auto font-mono text-[0.9375rem] leading-[1.75] sm:mt-10 sm:text-body">

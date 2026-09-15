@@ -59,10 +59,10 @@ export function PredictCheck({
 
   return (
     <section className="mt-12" aria-labelledby={`check-${lessonId}`}>
-      <p className="text-caption text-fg-muted">Угадай, прежде чем смотреть</p>
-      <h2 id={`check-${lessonId}`} className="mt-1 text-title3 font-semibold text-fg">
-        {check.question}
+      <h2 id={`check-${lessonId}`} className="text-title3 font-semibold text-fg">
+        Угадай, прежде чем смотреть
       </h2>
+      <p className="mt-2 text-body text-fg">{check.question}</p>
 
       {check.code && <CodeBlock code={check.code} lang={lang} className="mt-4" />}
 

@@ -47,7 +47,7 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
       </div>
       {html ? (
         <div
-          className="shiki-host overflow-x-auto px-5 pb-5 text-[0.9375rem] leading-[1.7]"
+          className="shiki-host shiki-numbered overflow-x-auto px-5 pb-6 text-[0.9375rem] leading-[1.75] sm:px-6"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       ) : (

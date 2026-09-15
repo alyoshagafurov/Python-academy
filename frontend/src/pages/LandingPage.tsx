@@ -68,7 +68,7 @@ export function LandingPage() {
   return (
     <PageTransition>
       {/* 1 — Hero */}
-      <section className="pb-20 pt-16 md:pb-32 md:pt-28">
+      <section className="pb-20 pt-12 md:pb-32 md:pt-16">
         <Container size="wide">
           <m.div
             className="text-center"
@@ -76,13 +76,13 @@ export function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: d(DURATION.hero), ease: EASE_OUT }}
           >
-            <h1 className="mx-auto max-w-[16ch] text-display font-bold text-fg">
+            <h1 className="mx-auto max-w-[16ch] text-display font-bold text-fg lg:max-w-none">
               Python, который понятен.
             </h1>
-            <p className="mx-auto mt-6 max-w-[44ch] text-body text-fg-muted md:text-title3">
+            <p className="mx-auto mt-5 max-w-[44ch] text-body text-fg-muted md:text-title3">
               Каждая тема — через пример из жизни, короткую теорию и код. От первой строки до backend.
             </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
               <ButtonLink to="/courses" size="lg" pill>
                 Начать учиться
               </ButtonLink>
@@ -93,7 +93,7 @@ export function LandingPage() {
                 Как устроен урок
               </a>
             </div>
-            <div className="mt-16 md:mt-20">
+            <div className="mt-12">
               <LessonShowcase />
             </div>
           </m.div>

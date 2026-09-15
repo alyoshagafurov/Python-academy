@@ -260,6 +260,21 @@ samp {
 .shiki-host .shiki code {
   font-family: inherit;
 }
+/* Same line numbers as the home showcase, so lesson code reads as the same object. */
+.shiki-numbered .shiki code {
+  counter-reset: line;
+}
+.shiki-numbered .shiki .line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1.5rem;
+  margin-right: 1.25rem;
+  text-align: right;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
 
 /* ─────────────────────────── Reduced motion ────────────────────────── */
 @media (prefers-reduced-motion: reduce) {

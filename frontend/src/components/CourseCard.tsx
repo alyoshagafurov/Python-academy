@@ -27,7 +27,7 @@ export function CourseCard({ course, as: Heading = "h3" }: CourseCardProps) {
     >
       <Heading className="line-clamp-2 text-title3 font-semibold text-fg">{course.title}</Heading>
       {course.description && (
-        <p className="mt-2 line-clamp-1 text-body text-fg-muted" title={course.description}>
+        <p className="mt-2 line-clamp-2 text-body text-fg-muted" title={course.description}>
           {course.description}
         </p>
       )}

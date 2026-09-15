@@ -320,7 +320,7 @@ export function LessonPage() {
               </p>
             </div>
 
-            <nav aria-label="Соседние темы" className="mt-10 grid gap-3 sm:grid-cols-2">
+            <nav aria-label="Соседние темы" className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <NeighbourLink
                 direction="prev"
                 to={lesson.nav.prev_id ? `/courses/${courseId}/lessons/${lesson.nav.prev_id}` : null}
@@ -421,7 +421,7 @@ function NeighbourLink({
   const next = direction === "next";
   const label = next ? "Далее" : "Назад";
   const fallback = to ? (next ? "Следующая тема" : "Предыдущая тема") : next ? "Это последняя тема" : "Это первая тема";
-  const cls = cn("flex min-h-[72px] items-center gap-3 rounded-xl bg-surface px-4 py-3", next && "sm:col-start-2");
+  const cls = cn("flex min-h-[72px] min-w-0 items-center gap-3 rounded-xl bg-surface px-4 py-3", next && "sm:col-start-2");
 
   const inner = (
     <>

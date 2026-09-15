@@ -17,7 +17,7 @@ OWN-WORLD: White #FFFFFF / #F5F5F7 surfaces, ink #1D1D1F, one blue #0071E3 only 
 
 STORY: See real code → believe it is understandable → «Начать учиться» → catalog → first lesson.
 
-FIRST VIEWPORT: Centered H1 clamp(40–72px), 17–21px subhead ≤ 56ch, pill CTA + text link; below, the 980px showcase surface with the analogy line and 6 lines of Python from beginner lesson 5, «Открыть урок» link.
+FIRST VIEWPORT: Centered H1 clamp(40–72px), 17–21px subhead ≤ 56ch, pill CTA + text link; below, the 980px showcase surface with the analogy line and 7 lines of Python from beginner lesson 5 (the lesson example verbatim; brief allows 6–10), whole showcase above the fold at 1440×900, «Открыть урок» link.
 
 FORM: brief-pinned «Светлая витрина»; seed 05a49d9c assigned index 6, overridden by the pinned brief; challengers zine, oscilloscope, ikebana, pickling all declined.
 
