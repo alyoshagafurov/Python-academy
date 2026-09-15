@@ -113,13 +113,36 @@ function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
 
   useEffect(() => {
     if (!open) return;
+    const items = () =>
+      Array.from(rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+    items()[0]?.focus();
+
     const onPointer = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
+    // ARIA menu pattern: arrows move between items, Escape returns to the button.
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setOpen(false);
         buttonRef.current?.focus();
+        return;
+      }
+      if (e.key === "Tab") {
+        setOpen(false);
+        return;
+      }
+      const list = items();
+      if (list.length === 0) return;
+      const i = list.indexOf(document.activeElement as HTMLElement);
+      const move: Record<string, number> = {
+        ArrowDown: (i + 1) % list.length,
+        ArrowUp: (i - 1 + list.length) % list.length,
+        Home: 0,
+        End: list.length - 1,
+      };
+      if (e.key in move) {
+        e.preventDefault();
+        list[move[e.key]].focus();
       }
     };
     document.addEventListener("pointerdown", onPointer);

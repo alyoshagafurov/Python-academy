@@ -54,7 +54,10 @@ export function LessonShowcase() {
                 RUNS.has(i) && "bg-surface-hover",
               )}
             >
-              <span aria-hidden="true" className="w-4 select-none text-right text-fg-muted tabular">
+              <span
+                aria-hidden="true"
+                className={cn("w-4 select-none text-right tabular", RUNS.has(i) ? "text-fg" : "text-fg-muted")}
+              >
                 {i + 1}
               </span>
               <span>

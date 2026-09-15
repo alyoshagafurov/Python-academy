@@ -52,7 +52,8 @@
   --fg-muted: #6e6e73;
   --line: #d2d2d7;
   --accent: #0071e3;
-  --accent-hover: #0077ed;
+  /* Hover goes darker, not lighter: #0077ED would drop white text to 4.3:1. */
+  --accent-hover: #0062c4;
   --accent-fg: #ffffff;
   /* Text links sit on white and on #F5F5F7; #0071E3 is 4.3:1 on the surface,
      so link text uses the deeper step of the same blue (≥ 5:1 on both). */
@@ -269,5 +270,10 @@ samp {
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+  /* A loading spinner is status, not decoration: keep it turning, slowly. */
+  .animate-spin {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
   }
 }

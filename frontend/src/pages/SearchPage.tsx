@@ -48,9 +48,21 @@ export function SearchPage() {
   }, [input]);
 
   // Keep ?q= in the address so a search can be shared or reopened.
+  // Runs on query changes only, so it never fights a back/forward navigation.
   useEffect(() => {
     if ((params.get("q") ?? "") !== query) setParams(query ? { q: query } : {}, { replace: true });
-  }, [query, params, setParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  // Back/forward or an edited address bar: follow the URL.
+  const urlQuery = params.get("q") ?? "";
+  useEffect(() => {
+    if (urlQuery !== query) {
+      setInput(urlQuery);
+      setQuery(urlQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlQuery]);
 
   const { data, isFetching, isError, refetch } = useQuery({
     queryKey: ["search", query],

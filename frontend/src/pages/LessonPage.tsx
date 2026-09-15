@@ -148,6 +148,7 @@ export function LessonPage() {
   const meta = [
     stageInfo?.title,
     stageInfo && `Тема ${stageInfo.pos} из ${stageInfo.total}`,
+    lesson.topic_name,
     `${mins} мин чтения`,
   ].filter(Boolean);
 
@@ -201,7 +202,6 @@ export function LessonPage() {
                 <Bookmark size={20} aria-hidden="true" className={cn(lesson.bookmarked && "fill-current")} />
               </button>
             </div>
-            {lesson.topic_name && <p className="mt-2 text-caption text-fg-muted">{lesson.topic_name}</p>}
 
             {lesson.association && (
               <div className="mt-8 rounded-xl bg-surface p-6">
