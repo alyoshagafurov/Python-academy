@@ -190,4 +190,43 @@ NUMERIC_CHECKS: dict[str, list[tuple[str, str]]] = {
         ("3500 * 4", "practice"),
         ("(18000 - 3000) / 1500", "challenge"),
     ],
+    # ── Этап 5. Решения на данных ── (lists are already sorted, so the median is the middle index)
+    "math_mean_median": [
+        ("2000 + 2500 + 3000 + 3500 + 19000", "example"),
+        ("(2000 + 2500 + 3000 + 3500 + 19000) / 5", "example"),
+        ("[2000, 2500, 3000, 3500, 19000][5 // 2]", "example"),
+        ("(2000 + 2500 + 3000 + 3500) / 4", "example"),
+        ("[40, 45, 50, 55, 160][5 // 2]", "practice"),
+        ("(4000 + 5000) / 2", "challenge"),
+    ],
+    "math_misleading_charts": [
+        ("(1050 - 1000) / 1000", "example"),
+        ("(1050 - 1000) / 1000 * 100", "example"),
+        ("1000 - 950", "example"),
+        ("1050 - 950", "example"),
+        ("(1050 - 950) / (1000 - 950)", "example"),
+        ("round((10.68 - 10.52) / 10.52 * 100, 1)", "practice"),
+    ],
+    "math_opportunity_cost": [
+        ("500 * 12", "example"),
+        ("500 * 12 - 3000", "example"),
+        ("10000 * 0.1", "challenge"),
+    ],
+    "math_marginal_thinking": [
+        ("100 * 4", "example"),
+        ("400 - 250", "example"),
+        ("400 - 380", "example"),
+        ("abs(400 - 450)", "example"),
+        ("(60 + 8) - 60", "practice"),
+        ("abs(30 - (40 - 4))", "challenge"),
+    ],
+    "math_budget_model": [
+        ("2500 + 2000 + 400 + 300", "example"),
+        ("8000 - (2500 + 2000 + 400 + 300)", "example"),
+        ("8000 * 0.1", "example"),
+        ("8000 - 5200 - 8000 * 0.1", "example"),
+        ("8000 - 5200 - 8000 * 0.1 - 400", "example"),
+        ("6000 - 4100 - 600", "practice"),
+        ("7000 - 4900 - 7000 * 0.15", "challenge"),
+    ],
 }
