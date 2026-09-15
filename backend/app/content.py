@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html
 import re
+from functools import lru_cache
 from typing import Iterable
 
 from app import bot_bridge as bot
@@ -39,9 +40,25 @@ def topic_name(topic: str) -> str:
     try:
         from utils.constants import topic_name as _tn  # bot module (on sys.path)
 
-        return _tn(topic) or topic
+        name = _tn(topic) or ""
     except Exception:
-        return topic
+        name = ""
+    if name and name != topic:
+        return name
+    # No name in the bot's constants (the bot echoes the raw key back, e.g. for
+    # math_* topics): show the title of the first lesson with this topic instead.
+    return _lesson_titles_by_topic().get(topic, name or topic)
+
+
+@lru_cache(maxsize=1)
+def _lesson_titles_by_topic() -> dict[str, str]:
+    """topic key → title of the first lesson that uses it (content is static per process)."""
+    titles: dict[str, str] = {}
+    for course in bot.all_courses().values():
+        for lesson in course.lessons:
+            if lesson.topic:
+                titles.setdefault(lesson.topic, lesson.title)
+    return titles
 
 
 # ─────────────────────────────── lessons ──────────────────────────────────
