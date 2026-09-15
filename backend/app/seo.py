@@ -47,6 +47,9 @@ class PageMeta:
     json_ld: dict | None = None
     noindex: bool = False
     status: int = 200
+    # Same-origin API URLs the page needs first; preloading them starts the
+    # requests in parallel with the JS bundle instead of after it.
+    preload: tuple[str, ...] = ()
 
 
 def clip(text: str, limit: int) -> str:
@@ -101,7 +104,9 @@ def _course_meta(course, path: str, site_url: str) -> PageMeta:
 def _lesson_meta(course, lesson, path: str) -> PageMeta:
     theory = content.no_emoji(content.plain(lesson.theory))
     description = clip(theory or content.no_emoji(course.description), DESCRIPTION_LIMIT)
-    return PageMeta(page_title(content.no_emoji(lesson.title)), description, path)
+    # The lesson text is the largest paint and waits for these two responses.
+    preload = (f"/api/courses/{course.id}/lessons/{lesson.id}", f"/api/courses/{course.id}")
+    return PageMeta(page_title(content.no_emoji(lesson.title)), description, path, preload=preload)
 
 
 def meta_for_path(path: str, site_url: str) -> PageMeta:
@@ -159,6 +164,11 @@ def render_index(template: str, page: PageMeta, site_url: str) -> str:
     ]
     if page.json_ld:
         tags.append(f'<script type="application/ld+json">{_json_ld(page.json_ld)}</script>')
+    # crossorigin="use-credentials" matches the app's fetch(..., { credentials: "include" }).
+    tags += [
+        f'<link rel="preload" href="{esc(href)}" as="fetch" crossorigin="use-credentials" />'
+        for href in page.preload
+    ]
 
     out = _DESCRIPTION_RE.sub("", template, count=1)
     out = _TITLE_RE.sub(lambda _m: f"<title>{esc(page.title)}</title>", out, count=1)

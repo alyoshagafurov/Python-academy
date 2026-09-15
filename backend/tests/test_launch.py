@@ -348,6 +348,13 @@ def test_home_and_lesson_meta(client):
     assert _meta(lesson.text, "property", "og:url") == f"{SITE_URL}/courses/math_thinking/lessons/18"
 
 
+def test_lesson_page_preloads_its_api_data(client):
+    html_text = client.get("/courses/math_thinking/lessons/18").text
+    for href in ("/api/courses/math_thinking/lessons/18", "/api/courses/math_thinking"):
+        assert f'<link rel="preload" href="{href}" as="fetch" crossorigin="use-credentials" />' in html_text
+    assert 'rel="preload"' not in client.get("/courses").text
+
+
 @pytest.mark.parametrize("path", ["/dashboard", "/search", "/insights"])
 def test_private_pages_are_noindex(client, path):
     assert _meta(client.get(path).text, "name", "robots") == "noindex, nofollow"
