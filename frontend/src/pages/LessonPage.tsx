@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { m } from "framer-motion";
-import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, ListOrdered } from "lucide-react";
+import { Bookmark, Check, ChevronLeft, ChevronRight, Clock, ListOrdered } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoginModal } from "@/hooks/useLoginModal";
 import { langForCourse } from "@/lib/codeLang";
-import { DURATION, EASE_OUT, useDuration } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
@@ -23,6 +21,8 @@ import { PredictCheck } from "@/components/PredictCheck";
 import { LivePreview } from "@/components/LivePreview";
 import { AdaptiveExplainer } from "@/components/mentor/AdaptiveExplainer";
 import { LessonToc } from "@/components/lesson/LessonToc";
+import { LessonMistakes } from "@/components/lesson/LessonMistakes";
+import { OwnWords } from "@/components/lesson/OwnWords";
 
 /** Result of «Понятно, отметить»; currentId is set when the lesson is ahead of the current one. */
 interface ReadNote {
@@ -43,12 +43,9 @@ export function LessonPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const { open: openLogin } = useLoginModal();
-  const d = useDuration();
 
-  const [showMistakes, setShowMistakes] = useState(false);
   const [readFlash, setReadFlash] = useState<ReadNote | null>(null);
   const flashTimer = useRef<number | undefined>(undefined);
-  const [ownWords, setOwnWords] = useState("");
   const [tocOpen, setTocOpen] = useState(false);
   const viewedRef = useRef("");
 
@@ -70,9 +67,7 @@ export function LessonPage() {
   const [shownLesson, setShownLesson] = useState(lessonKey);
   if (shownLesson !== lessonKey) {
     setShownLesson(lessonKey);
-    setShowMistakes(false);
     setReadFlash(null);
-    setOwnWords("");
     setTocOpen(false);
   }
   useEffect(() => {
@@ -278,72 +273,12 @@ export function LessonPage() {
 
             {/* Common mistakes — collapsed by default to reduce overwhelm */}
             {lesson.common_mistakes.length > 0 && (
-              <div className="mt-12 border-y border-line">
-                <h2>
-                <button
-                  type="button"
-                  aria-expanded={showMistakes}
-                  aria-controls={showMistakes ? "lesson-mistakes" : undefined}
-                  onClick={() => setShowMistakes((v) => !v)}
-                  className="flex min-h-14 w-full items-center gap-3 text-left"
-                >
-                  <span className="flex-1 text-body font-semibold text-fg">Частые ошибки</span>
-                  <span className="text-caption text-fg-muted tabular">{lesson.common_mistakes.length}</span>
-                  <ChevronDown
-                    size={20}
-                    aria-hidden="true"
-                    className={cn("shrink-0 text-fg-muted transition-transform duration-200 ease-out", showMistakes && "rotate-180")}
-                  />
-                </button>
-                </h2>
-                {showMistakes && (
-                  <m.ul
-                    id="lesson-mistakes"
-                    className="space-y-3 pb-6"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: d(DURATION.accordion), ease: EASE_OUT }}
-                  >
-                    {lesson.common_mistakes.map((m, i) => (
-                      <li key={i} className="flex gap-3">
-                        <span aria-hidden="true" className="mt-[0.7em] h-1.5 w-1.5 shrink-0 rounded-full bg-fg-muted" />
-                        <TheoryRenderer html={m} />
-                      </li>
-                    ))}
-                  </m.ul>
-                )}
-              </div>
+              <LessonMistakes key={lessonKey} mistakes={lesson.common_mistakes} />
             )}
 
 
             {/* Closure: recall in your own words (Galperin / Badmaev) */}
-            <div className="mt-12">
-              <label htmlFor="own-words" className="text-body font-semibold text-fg">
-                Закрепи: объясни тему своими словами
-              </label>
-              <p id="own-words-hint" className="mt-1 text-caption text-fg-muted">
-                Если получилось сформулировать — значит, ты правда понял. Это для тебя, никто не проверяет.
-              </p>
-              <textarea
-                id="own-words"
-                aria-describedby="own-words-hint"
-                value={ownWords}
-                onChange={(e) => setOwnWords(e.target.value)}
-                rows={3}
-                placeholder={
-                  lang === "math"
-                    ? "Например: процент — это сотая часть, поэтому 10% от 250 — это 25…"
-                    : "Например: переменная — это коробка с именем, в которую кладёшь значение…"
-                }
-                className="mt-3 w-full resize-y rounded-xl border border-line bg-bg px-4 py-3 text-body text-fg placeholder:text-fg-muted"
-              />
-              {ownWords.trim().length > 12 && (
-                <p className="mt-2 flex items-center gap-2 text-caption text-fg">
-                  <Check size={16} strokeWidth={2.5} className="text-success" aria-hidden="true" />
-                  Своими словами запоминается лучше. Вернись к этой формулировке, когда будешь повторять.
-                </p>
-              )}
-            </div>
+            <OwnWords key={lessonKey} lang={lang} />
 
             <div className="mt-12 flex flex-wrap items-center gap-4">
               <Button size="lg" onClick={handleRead} disabled={readMut.isPending}>
