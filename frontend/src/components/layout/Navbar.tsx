@@ -1,11 +1,16 @@
-import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Search, Menu, X, LogOut, LayoutDashboard, Crown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { AnimatePresence, m } from "framer-motion";
+import { LogOut, Menu, Search, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoginModal } from "@/hooks/useLoginModal";
+import { useDialog } from "@/hooks/useDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/Button";
+import { Container } from "@/components/ui/Container";
+import { DURATION, EASE_OUT, useDuration } from "@/lib/motion";
+import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -14,30 +19,36 @@ const links = [
   { to: "/pro", label: "PRO" },
 ];
 
+const iconButton = "grid h-11 w-11 place-items-center rounded-xl text-fg transition-colors duration-150 ease-out hover:bg-surface";
+
 export function Navbar() {
   const { user, logout } = useAuth();
-  const { open } = useLoginModal();
-  const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const { open: openLogin } = useLoginModal();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-bg/80 backdrop-blur-xl">
-      <nav className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2 font-bold tracking-tight">
-          <span className="text-xl">🐍</span>
-          <span className="hidden sm:inline">
-            Python <span className="text-primary">Knowledge Hub</span>
-          </span>
+    <header className="sticky top-0 z-40 border-b border-line bg-nav backdrop-blur-[20px] backdrop-saturate-[180%]">
+      <Container size="wide" className="flex h-[52px] items-center gap-6">
+        <Link
+          to="/"
+          className="inline-flex min-h-11 items-center text-body font-semibold tracking-tight text-fg"
+        >
+          Python Knowledge Hub
         </Link>
 
-        <div className="ml-4 hidden items-center gap-1 md:flex">
+        <nav aria-label="Основная навигация" className="hidden items-center md:flex">
           {links.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
               className={({ isActive }) =>
                 cn(
-                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "inline-flex h-11 items-center rounded-xl px-3 text-caption transition-colors duration-150 ease-out",
                   isActive ? "text-fg" : "text-fg-muted hover:text-fg",
                 )
               }
@@ -45,112 +56,219 @@ export function Navbar() {
               {l.label}
             </NavLink>
           ))}
-        </div>
+        </nav>
 
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => navigate("/search")}
-            aria-label="Поиск"
-            className="grid h-10 w-10 place-items-center rounded-xl border border-border text-fg-muted transition-colors hover:bg-card-hover hover:text-fg sm:hidden"
-          >
-            <Search size={18} />
-          </button>
-          <ThemeToggle />
-
-          {user ? (
-            <div className="hidden items-center gap-2 md:flex">
-              <Button variant="secondary" size="md" onClick={() => navigate("/dashboard")}>
-                <LayoutDashboard size={16} />
-                Кабинет
-              </Button>
+        <div className="ml-auto flex items-center gap-1">
+          <div className="hidden md:block">
+            {user ? (
+              <UserMenu user={user} onLogout={logout} />
+            ) : (
               <button
-                onClick={logout}
-                aria-label="Выйти"
-                className="grid h-10 w-10 place-items-center rounded-xl border border-border text-fg-muted hover:bg-card-hover hover:text-fg"
+                type="button"
+                onClick={openLogin}
+                className="inline-flex h-11 items-center rounded-xl px-3 text-caption font-medium text-link hover:underline"
               >
-                <LogOut size={16} />
+                Войти
               </button>
-            </div>
-          ) : (
-            <Button className="hidden md:inline-flex" onClick={open}>
-              Войти
-            </Button>
-          )}
-
+            )}
+          </div>
+          <Link to="/search" aria-label="Поиск" className={cn(iconButton, "md:hidden")}>
+            <Search size={20} aria-hidden="true" />
+          </Link>
           <button
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Меню"
-            className="grid h-10 w-10 place-items-center rounded-xl border border-border text-fg-muted md:hidden"
+            type="button"
+            aria-label="Открыть меню"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            onClick={() => setMenuOpen(true)}
+            className={cn(iconButton, "md:hidden")}
           >
-            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            <Menu size={22} aria-hidden="true" />
           </button>
         </div>
-      </nav>
+      </Container>
 
       <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            className="border-t border-border bg-bg md:hidden"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="flex flex-col gap-1 px-4 py-3">
-              {links.map((l) => (
-                <NavLink
-                  key={l.to}
-                  to={l.to}
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-fg-muted hover:bg-card-hover hover:text-fg"
-                >
-                  {l.label}
-                </NavLink>
-              ))}
-              <div className="mt-2 flex gap-2">
-                {user ? (
-                  <>
-                    <Button
-                      className="flex-1"
-                      variant="secondary"
-                      onClick={() => {
-                        navigate("/dashboard");
-                        setMobileOpen(false);
-                      }}
-                    >
-                      <LayoutDashboard size={16} /> Кабинет
-                    </Button>
-                    <Button variant="outline" onClick={logout}>
-                      <LogOut size={16} />
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    className="flex-1"
-                    onClick={() => {
-                      open();
-                      setMobileOpen(false);
-                    }}
-                  >
-                    Войти через Telegram
-                  </Button>
-                )}
-              </div>
-              {user?.is_pro ? null : (
-                <button
-                  onClick={() => {
-                    navigate("/pro");
-                    setMobileOpen(false);
-                  }}
-                  className="mt-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-accent"
-                >
-                  <Crown size={15} /> Открыть PRO
-                </button>
-              )}
-            </div>
-          </motion.div>
+        {menuOpen && (
+          <MobileMenu
+            user={user}
+            onClose={() => setMenuOpen(false)}
+            onLogin={openLogin}
+            onLogout={logout}
+          />
         )}
       </AnimatePresence>
     </header>
+  );
+}
+
+function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const { pathname } = useLocation();
+  const name = user.username ? `@${user.username}` : `user_${user.id}`;
+
+  useEffect(() => setOpen(false), [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Меню профиля"
+        onClick={() => setOpen((v) => !v)}
+        className="grid h-11 w-11 place-items-center rounded-xl"
+      >
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-surface text-caption font-semibold text-fg">
+          {name.replace("@", "").charAt(0).toUpperCase()}
+        </span>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          aria-label="Профиль"
+          className="absolute right-0 top-full mt-1 w-60 overflow-hidden rounded-xl border border-line bg-bg py-1 shadow-popover"
+        >
+          <p className="truncate px-4 py-2 text-caption text-fg-muted">{name}</p>
+          <Link
+            role="menuitem"
+            to="/dashboard"
+            className="flex min-h-11 items-center px-4 text-body text-fg hover:bg-surface"
+          >
+            Кабинет
+          </Link>
+          <button
+            role="menuitem"
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onLogout();
+            }}
+            className="flex min-h-11 w-full items-center px-4 text-left text-body text-fg hover:bg-surface"
+          >
+            Выйти
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface MobileMenuProps {
+  user: User | null;
+  onClose: () => void;
+  onLogin: () => void;
+  onLogout: () => void;
+}
+
+function MobileMenu({ user, onClose, onLogin, onLogout }: MobileMenuProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const d = useDuration();
+  useDialog(panelRef, onClose);
+
+  const rowClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      "flex min-h-14 items-center border-b border-line text-title3 font-semibold",
+      isActive ? "text-fg" : "text-fg-muted",
+    );
+
+  return createPortal(
+    <m.div
+      ref={panelRef}
+      id="mobile-menu"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Меню"
+      className="fixed inset-0 z-50 flex origin-top flex-col overflow-y-auto bg-bg md:hidden"
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1, transition: { duration: d(DURATION.enter), ease: EASE_OUT } }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: d(DURATION.exit), ease: EASE_OUT } }}
+    >
+      <Container size="wide" className="flex h-[52px] shrink-0 items-center justify-between">
+        <Link
+          to="/"
+          onClick={onClose}
+          className="inline-flex min-h-11 items-center text-body font-semibold tracking-tight text-fg"
+        >
+          Python Knowledge Hub
+        </Link>
+        <button type="button" data-autofocus aria-label="Закрыть меню" onClick={onClose} className={iconButton}>
+          <X size={22} aria-hidden="true" />
+        </button>
+      </Container>
+
+      <Container size="wide" className="flex flex-1 flex-col pb-10 pt-4">
+        <nav aria-label="Разделы">
+          <ul role="list">
+            {links.map((l) => (
+              <li key={l.to}>
+                <NavLink to={l.to} onClick={onClose} className={rowClass}>
+                  {l.label}
+                </NavLink>
+              </li>
+            ))}
+            {user && (
+              <li>
+                <NavLink to="/dashboard" onClick={onClose} className={rowClass}>
+                  Кабинет
+                </NavLink>
+              </li>
+            )}
+          </ul>
+        </nav>
+
+        <div className="mt-8 flex flex-col items-start gap-3">
+          {user ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onLogout();
+              }}
+              className="inline-flex min-h-11 items-center gap-2 text-caption text-fg-muted hover:text-fg"
+            >
+              <LogOut size={16} aria-hidden="true" />
+              Выйти
+            </button>
+          ) : (
+            <Button
+              size="lg"
+              pill
+              className="w-full"
+              onClick={() => {
+                onClose();
+                onLogin();
+              }}
+            >
+              Войти через Telegram
+            </Button>
+          )}
+          <ThemeToggle withLabel />
+        </div>
+      </Container>
+    </m.div>,
+    document.body,
   );
 }
