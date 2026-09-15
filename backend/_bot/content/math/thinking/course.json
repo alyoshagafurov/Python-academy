@@ -1,0 +1,9 @@
+{
+  "id": "math_thinking",
+  "language": "math",
+  "track": "thinking",
+  "title": "Математика мышления",
+  "description": "Считать и рассуждать ясно: проценты, риск, кредиты и решения на данных",
+  "emoji": "📐",
+  "stages": ["stage_1"]
+}
