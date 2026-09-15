@@ -16,6 +16,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 TELEGRAM_WIDGET_ORIGIN = "https://telegram.org"
 TELEGRAM_OAUTH_ORIGIN = "https://oauth.telegram.org"
+API_BODY_LIMIT = 64 * 1024  # bytes
 
 _INLINE_SCRIPT_RE = re.compile(r"<script>(.*?)</script>", re.S)
 
@@ -52,10 +53,65 @@ def security_headers(csp: str, hsts: bool) -> list[tuple[str, str]]:
         ("Referrer-Policy", "strict-origin-when-cross-origin"),
         ("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()"),
         ("X-Frame-Options", "DENY"),
+        # Keeps other sites out of our browsing context; popups stay allowed
+        # because the Telegram login flow may open its own window.
+        ("Cross-Origin-Opener-Policy", "same-origin-allow-popups"),
+        ("Cross-Origin-Resource-Policy", "same-origin"),
     ]
     if hsts:
         headers.append(("Strict-Transport-Security", "max-age=31536000; includeSubDomains"))
     return headers
+
+
+class BodySizeLimitMiddleware:
+    """Answers 413 when a request body under ``path_prefix`` exceeds ``max_bytes``.
+
+    Counts the bytes actually received (a Content-Length header can be absent or
+    wrong) and replays the buffered body to the app when it fits."""
+
+    def __init__(self, app: ASGIApp, max_bytes: int, path_prefix: str) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+        self.path_prefix = path_prefix
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or not scope["path"].startswith(self.path_prefix):
+            await self.app(scope, receive, send)
+            return
+
+        declared = dict(scope.get("headers", [])).get(b"content-length")
+        if declared is not None and declared.isdigit() and int(declared) > self.max_bytes:
+            await self._too_large(send)
+            return
+
+        messages: list[Message] = []
+        size = 0
+        while True:
+            message = await receive()
+            messages.append(message)
+            if message["type"] != "http.request":
+                break
+            size += len(message.get("body", b""))
+            if size > self.max_bytes:
+                await self._too_large(send)
+                return
+            if not message.get("more_body", False):
+                break
+
+        async def replay() -> Message:
+            return messages.pop(0) if messages else await receive()
+
+        await self.app(scope, replay, send)
+
+    @staticmethod
+    async def _too_large(send: Send) -> None:
+        body = b'{"detail":"Request body too large."}'
+        await send({
+            "type": "http.response.start",
+            "status": 413,
+            "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())],
+        })
+        await send({"type": "http.response.body", "body": body})
 
 
 class SecurityHeadersMiddleware:

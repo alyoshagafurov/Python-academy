@@ -40,7 +40,7 @@ def _courses():
 # ───────────────────────────── safe defaults ─────────────────────────────
 
 def _clean_env(monkeypatch) -> None:
-    for name in ("DEV_AUTH", "SESSION_SECRET", "COOKIE_SECURE", "MENTOR_ANALYTICS_OPEN", "ADMIN_TELEGRAM_IDS"):
+    for name in ("DEV_AUTH", "SESSION_SECRET", "COOKIE_SECURE", "MENTOR_ANALYTICS_OPEN", "ADMIN_TELEGRAM_IDS", "SITE_URL"):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -85,9 +85,24 @@ def test_start_refuses_without_real_secret_outside_dev(secret):
     assert "SESSION_SECRET" in result.stderr
 
 
+@pytest.mark.parametrize("site_url", [None, "", "academy.example", "ftp://academy.example"])
+def test_start_refuses_without_site_url_outside_dev(site_url):
+    """Canonical, Open Graph and the sitemap must never be built from the Host header."""
+    result = _start_app({"DEV_AUTH": "0", "SITE_URL": site_url})
+    assert result.returncode != 0
+    assert "SITE_URL" in result.stderr
+
+
 def test_start_allowed_locally_in_dev_mode():
-    result = _start_app({"DEV_AUTH": "1", "SESSION_SECRET": None})
+    result = _start_app({"DEV_AUTH": "1", "SESSION_SECRET": None, "SITE_URL": None})
     assert result.returncode == 0, result.stderr
+
+
+def test_host_header_does_not_change_public_urls(client):
+    forged = {"host": "evil.example"}
+    assert "evil.example" not in client.get("/sitemap.xml", headers=forged).text
+    assert "evil.example" not in client.get("/robots.txt", headers=forged).text
+    assert "evil.example" not in client.get("/courses/python_beginner", headers=forged).text
 
 
 def test_dev_login_is_404_when_disabled(client):
@@ -124,6 +139,9 @@ def test_security_headers(client, path):
     assert r.header("referrer-policy") == "strict-origin-when-cross-origin"
     assert "camera=()" in (r.header("permissions-policy") or "")
     assert "max-age=" in (r.header("strict-transport-security") or "")
+    # Popups stay allowed: the Telegram login flow can open its own window.
+    assert r.header("cross-origin-opener-policy") == "same-origin-allow-popups"
+    assert r.header("cross-origin-resource-policy") == "same-origin"
     csp = _csp(r)
     assert csp.get("default-src") == "'self'"
     assert "'unsafe-inline'" not in csp["script-src"]
@@ -167,6 +185,49 @@ def test_session_says_who_is_admin(client, make_user):
     make_user(STUDENT_ID, "student")
     assert client.get("/api/auth/session", user_id=ADMIN_ID).json()["user"]["is_admin"] is True
     assert client.get("/api/auth/session", user_id=STUDENT_ID).json()["user"]["is_admin"] is False
+
+
+# ─────────────────────────── abuse limits ──────────────────────────────────
+
+def test_event_meta_size_is_capped(client):
+    big = {"type": "lesson_view", "course_id": "python_beginner", "lesson_id": 1, "meta": {"blob": "x" * 5000}}
+    assert client.post("/api/mentor/event", json_body=big).status == 422
+    ok = {"type": "lesson_view", "course_id": "python_beginner", "lesson_id": 1, "meta": {"title": "Урок"}}
+    assert client.post("/api/mentor/event", json_body=ok).status == 200
+
+
+def test_api_rejects_oversized_bodies(client):
+    huge = {"type": "lesson_view", "meta": {"blob": "x" * 70_000}}
+    assert client.post("/api/mentor/event", json_body=huge).status == 413
+
+
+def test_search_query_length_is_capped(client):
+    assert client.get("/api/search?q=" + "a" * 201).status == 422
+    assert client.get("/api/search?q=" + "a" * 200).status == 200
+
+
+def test_anonymous_mentor_calls_are_limited_per_client_ip(client, monkeypatch):
+    """Rotating X-Anon-Id must not reset the limit for one network client."""
+    from app.routers import mentor as mentor_router
+
+    monkeypatch.setattr(mentor_router, "ANON_IP_LIMIT_PER_HOUR", 3)
+    body = {"course_id": "python_beginner", "lesson_id": 2}
+    statuses = [
+        client.post("/api/mentor/hint", json_body=body, headers={"x-anon-id": f"rotating-{i}"}).status
+        for i in range(5)
+    ]
+    assert statuses[:3] == [200, 200, 200]
+    assert statuses[3:] == [429, 429]
+
+
+def test_event_logging_is_rate_limited(client, monkeypatch):
+    from app.routers import mentor as mentor_router
+
+    monkeypatch.setattr(mentor_router, "EVENT_LIMIT_PER_HOUR", 2)
+    headers = {"x-anon-id": "event-flood"}
+    body = {"type": "check_attempt", "course_id": "math_thinking", "lesson_id": 3}
+    statuses = [client.post("/api/mentor/event", json_body=body, headers=headers).status for _ in range(4)]
+    assert statuses == [200, 200, 429, 429]
 
 
 # ─────────────────────────── honest lesson status ──────────────────────────
@@ -451,8 +512,10 @@ def test_databases_on_absolute_paths_survive_a_restart(tmp_path):
 
 # ─────────────────────────── build and brand ───────────────────────────────
 
-def test_dockerfile_uses_node_22():
-    assert "FROM node:22-alpine" in (REPO_DIR / "Dockerfile").read_text(encoding="utf-8")
+def test_dockerfile_uses_node_22_and_proxy_headers():
+    dockerfile = (REPO_DIR / "Dockerfile").read_text(encoding="utf-8")
+    assert "FROM node:22-alpine" in dockerfile
+    assert "--proxy-headers" in dockerfile
 
 
 def test_env_example_documents_launch_variables():

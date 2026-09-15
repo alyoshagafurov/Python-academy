@@ -71,6 +71,8 @@ app.add_middleware(
 )
 # JS bundles, lesson JSON and HTML compress several times over on slow mobile links.
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+# API requests are small JSON; anything bigger is refused before it reaches a route.
+app.add_middleware(security.BodySizeLimitMiddleware, max_bytes=security.API_BODY_LIMIT, path_prefix="/api/")
 # Added last, so it wraps everything and every response carries the headers.
 app.add_middleware(
     security.SecurityHeadersMiddleware,
@@ -93,7 +95,11 @@ async def health() -> dict:
 
 
 def _site_url(request: Request) -> str:
-    return settings.site_url or str(request.base_url).rstrip("/")
+    # Outside dev SITE_URL is required at startup, so public URLs never come from
+    # the client-controlled Host header; the request is only a local-dev fallback.
+    if settings.site_url or not settings.dev_auth_enabled:
+        return settings.site_url
+    return str(request.base_url).rstrip("/")
 
 
 @app.get("/robots.txt", include_in_schema=False)

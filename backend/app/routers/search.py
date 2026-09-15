@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/search", tags=["search"])
 
 
 @router.get("")
-async def search(q: str = Query(default="", min_length=0), limit: int = 12) -> dict:
+async def search(q: str = Query(default="", min_length=0, max_length=200), limit: int = 12) -> dict:
     hits = bot.search_service.search(q, limit=max(1, min(limit, 30)))
     out = []
     for hit in hits:

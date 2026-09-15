@@ -106,6 +106,11 @@ def startup_problems(s: Settings) -> list[str]:
             "SESSION_SECRET не задан или равен значению для разработки. Задай длинную случайную "
             "строку в переменных окружения. DEV_AUTH=1 допустим только локально."
         )
+    if not s.dev_auth_enabled and not s.site_url.startswith(("https://", "http://")):
+        problems.append(
+            "SITE_URL не задан. Укажи публичный адрес сайта с https://, без слеша в конце: "
+            "по нему строятся canonical, Open Graph и sitemap (не по заголовку Host)."
+        )
     return problems
 
 

@@ -24,4 +24,6 @@ COPY --from=web /web/dist ./static
 ENV FRONTEND_DIR=/app/static
 
 EXPOSE 8000
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# --proxy-headers: behind Railway's proxy the visitor's IP comes from X-Forwarded-For
+# (used by the anonymous mentor rate limit); the container is reachable only via that proxy.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
