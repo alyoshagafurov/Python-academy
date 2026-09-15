@@ -46,6 +46,7 @@ export function DashboardPage() {
     return (
       <PageTransition>
         <Container size="narrow" className="py-24 text-center">
+          <title>Кабинет — Python Academy</title>
           <h1 className="text-title2 font-bold text-fg">Войди, чтобы открыть кабинет</h1>
           <p className="mx-auto mt-3 max-w-[44ch] text-body text-fg-muted">
             Прогресс, стрик и избранное хранятся по твоему Telegram-аккаунту — тому же, что в боте.
@@ -87,6 +88,7 @@ export function DashboardPage() {
   return (
     <PageTransition>
       <Container className="pb-24 pt-12 md:pt-20">
+        <title>Кабинет — Python Academy</title>
         <h1 className="break-words text-title2 font-bold tracking-[-0.025em] text-fg md:text-title1">Привет, {name}</h1>
         {p && (
           <p className="mt-2 text-caption text-fg-muted">

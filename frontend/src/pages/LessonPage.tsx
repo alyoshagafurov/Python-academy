@@ -28,6 +28,8 @@ import { LessonToc } from "@/components/lesson/LessonToc";
 interface ReadNote {
   text: string;
   currentId?: number;
+  /** Set when the lesson was just counted and a next lesson exists. */
+  nextId?: number;
 }
 
 function readMinutes(...texts: string[]): number {
@@ -124,7 +126,12 @@ export function LessonPage() {
         setReadFlash({ text: "Засчитается, когда дойдёшь сюда по порядку.", currentId: res.current_lesson });
         return;
       }
-      setReadFlash({ text: res.awarded ? `+${res.xp_gain} XP — тема пройдена!` : "Отмечено прочитанным" });
+      // A counted lesson ends with a way forward, so this note stays until navigation.
+      if (res.awarded) {
+        setReadFlash({ text: `+${res.xp_gain} XP — тема пройдена.`, nextId: lesson?.nav.next_id ?? undefined });
+        return;
+      }
+      setReadFlash({ text: "Отмечено прочитанным" });
       flashTimer.current = window.setTimeout(() => setReadFlash(null), 3500);
     },
   });
@@ -176,6 +183,7 @@ export function LessonPage() {
 
   return (
     <PageTransition>
+      <title>{`${lesson.title} — Python Academy`}</title>
       <Container size="wide" className="pb-24 pt-6 md:pt-10">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_220px]">
           {course && (
@@ -260,6 +268,9 @@ export function LessonPage() {
               </LessonSection>
             )}
 
+            {/* Adaptive explainer (zero-token mentor): offered while the theory is fresh, before the check */}
+            <AdaptiveExplainer courseId={courseId} lessonId={lid} lang={lang} />
+
             {/* Retrieval practice — predict before you peek (Make It Stick) */}
             {lesson.check && (
               <PredictCheck key={`${courseId}:${lid}`} check={lesson.check} lang={lang} courseId={courseId} lessonId={lid} />
@@ -268,10 +279,11 @@ export function LessonPage() {
             {/* Common mistakes — collapsed by default to reduce overwhelm */}
             {lesson.common_mistakes.length > 0 && (
               <div className="mt-12 border-y border-line">
+                <h2>
                 <button
                   type="button"
                   aria-expanded={showMistakes}
-                  aria-controls="lesson-mistakes"
+                  aria-controls={showMistakes ? "lesson-mistakes" : undefined}
                   onClick={() => setShowMistakes((v) => !v)}
                   className="flex min-h-14 w-full items-center gap-3 text-left"
                 >
@@ -283,6 +295,7 @@ export function LessonPage() {
                     className={cn("shrink-0 text-fg-muted transition-transform duration-200 ease-out", showMistakes && "rotate-180")}
                   />
                 </button>
+                </h2>
                 {showMistakes && (
                   <m.ul
                     id="lesson-mistakes"
@@ -302,8 +315,6 @@ export function LessonPage() {
               </div>
             )}
 
-            {/* Adaptive explainer (zero-token mentor) */}
-            <AdaptiveExplainer courseId={courseId} lessonId={lid} lang={lang} />
 
             {/* Closure: recall in your own words (Galperin / Badmaev) */}
             <div className="mt-12">
@@ -329,7 +340,7 @@ export function LessonPage() {
               {ownWords.trim().length > 12 && (
                 <p className="mt-2 flex items-center gap-2 text-caption text-fg">
                   <Check size={16} strokeWidth={2.5} className="text-success" aria-hidden="true" />
-                  Отлично — ты только что закрепил тему.
+                  Своими словами запоминается лучше. Вернись к этой формулировке, когда будешь повторять.
                 </p>
               )}
             </div>
@@ -353,6 +364,14 @@ export function LessonPage() {
                         className="inline-flex min-h-11 items-center text-link hover:underline"
                       >
                         К текущему уроку
+                      </Link>
+                    )}
+                    {readFlash.nextId && (
+                      <Link
+                        to={`/courses/${courseId}/lessons/${readFlash.nextId}`}
+                        className="inline-flex min-h-11 items-center font-medium text-link hover:underline"
+                      >
+                        Следующая тема: {titleById.get(readFlash.nextId) ?? "дальше"}
                       </Link>
                     )}
                   </>
@@ -468,7 +487,7 @@ function NeighbourLink({
       {!next && <ChevronLeft size={20} className="shrink-0 text-fg-muted" aria-hidden="true" />}
       <span className={cn("min-w-0 flex-1", next && "text-right")}>
         <span className="block text-caption text-fg-muted">{label}</span>
-        <span className="mt-0.5 block truncate text-body text-fg">{title ?? fallback}</span>
+        <span className="mt-0.5 line-clamp-2 block text-body text-fg">{title ?? fallback}</span>
       </span>
       {next && <ChevronRight size={20} className="shrink-0 text-fg-muted" aria-hidden="true" />}
     </>
@@ -476,7 +495,8 @@ function NeighbourLink({
 
   if (!to) {
     return (
-      <div aria-disabled="true" className={cn(cls, "opacity-40")}>
+      // Informational, not a disabled control: full opacity keeps the text at 4.5:1.
+      <div aria-disabled="true" className={cn(cls, "text-fg-muted")}>
         {inner}
       </div>
     );

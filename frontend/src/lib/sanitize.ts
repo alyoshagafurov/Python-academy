@@ -8,6 +8,12 @@ import DOMPurify from "dompurify";
  */
 export const ALLOWED_TAGS = ["b", "i", "code", "br"];
 
+// Inline code is English in a Russian page: set the language after sanitizing,
+// so no attribute ever comes from the content itself.
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.nodeName === "CODE") node.setAttribute("lang", "en");
+});
+
 export function sanitizeLessonHtml(html: string): string {
   return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR: [] });
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { AnimatePresence, m } from "framer-motion";
@@ -82,7 +82,7 @@ export function Navbar() {
             type="button"
             aria-label="Открыть меню"
             aria-expanded={menuOpen}
-            aria-controls="mobile-menu"
+            aria-controls={menuOpen ? "mobile-menu" : undefined}
             onClick={() => setMenuOpen(true)}
             className={cn(iconButton, "md:hidden")}
           >
@@ -111,6 +111,7 @@ function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { pathname } = useLocation();
   const name = user.username ? `@${user.username}` : `user_${user.id}`;
+  const menuId = useId();
 
   const [openPath, setOpenPath] = useState(pathname);
   if (openPath !== pathname) {
@@ -167,6 +168,7 @@ function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
         aria-label="Меню профиля"
         onClick={() => setOpen((v) => !v)}
         className="grid h-11 w-11 place-items-center rounded-xl"
@@ -176,12 +178,10 @@ function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
         </span>
       </button>
       {open && (
-        <div
-          role="menu"
-          aria-label="Профиль"
-          className="absolute right-0 top-full mt-1 w-60 overflow-hidden rounded-xl border border-line bg-bg py-1 shadow-popover"
-        >
+        <div className="absolute right-0 top-full mt-1 w-60 overflow-hidden rounded-xl border border-line bg-bg py-1 shadow-popover">
+          {/* The account name labels the menu; it is not a menu item. */}
           <p className="truncate px-4 py-2 text-caption text-fg-muted">{name}</p>
+          <div role="menu" id={menuId} aria-label={`Профиль ${name}`}>
           <Link
             role="menuitem"
             to="/dashboard"
@@ -209,6 +209,7 @@ function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
           >
             Выйти
           </button>
+          </div>
         </div>
       )}
     </div>

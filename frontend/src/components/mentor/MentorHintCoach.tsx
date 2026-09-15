@@ -77,7 +77,7 @@ export function MentorHintCoach({
       <div className="p-5" aria-live="polite">
         {loading ? (
           <p className="flex items-center gap-2 text-body text-fg-muted">
-            <Spinner label="Загрузка подсказки" /> Думаю, как подсказать…
+            <Spinner decorative /> Думаю, как подсказать…
           </p>
         ) : error ? (
           <p role="alert" className="text-body text-danger">

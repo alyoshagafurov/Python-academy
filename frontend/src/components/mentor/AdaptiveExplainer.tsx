@@ -77,7 +77,7 @@ export function AdaptiveExplainer({
       <div aria-live="polite">
         {loading && (
           <p className="mt-5 flex items-center gap-2 text-body text-fg-muted">
-            <Spinner label="Загрузка объяснения" /> Подбираю объяснение…
+            <Spinner decorative /> Подбираю объяснение…
           </p>
         )}
 

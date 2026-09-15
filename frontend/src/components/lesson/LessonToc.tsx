@@ -47,7 +47,7 @@ export function LessonToc({ course, currentId, onNavigate }: LessonTocProps) {
               <button
                 type="button"
                 aria-expanded={open}
-                aria-controls={listId}
+                aria-controls={open ? listId : undefined}
                 onClick={() => toggle(stage.id)}
                 className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-caption font-semibold text-fg transition-colors duration-150 ease-out hover:bg-surface"
               >

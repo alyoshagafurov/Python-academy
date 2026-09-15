@@ -71,10 +71,14 @@ export function PredictCheck({
           return (
             <GroupedRow
               key={i}
-              onClick={() => choose(i)}
-              disabled={correct}
+              // After a correct answer the options stay focusable (aria-disabled, not
+              // disabled), so keyboard focus does not fall back to the page.
+              onClick={() => {
+                if (!correct) choose(i);
+              }}
+              ariaDisabled={correct}
               pressed={isPicked}
-              className={cn(showRight && "disabled:opacity-100")}
+              className={cn(correct && !isCorrect && "text-fg-muted")}
               leading={
                 <span
                   className={cn(

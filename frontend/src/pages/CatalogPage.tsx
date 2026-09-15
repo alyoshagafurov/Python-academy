@@ -24,6 +24,7 @@ export function CatalogPage() {
   return (
     <PageTransition>
       <Container className="pb-24 pt-12 md:pt-20">
+        <title>Курсы — Python Academy</title>
         <h1 className="text-title1 font-bold tracking-[-0.025em] text-fg">Курсы</h1>
         <p className="mt-3 max-w-[52ch] text-body text-fg-muted">
           От установки Python до Flask и backend-архитектуры. Начни с курса своего уровня.

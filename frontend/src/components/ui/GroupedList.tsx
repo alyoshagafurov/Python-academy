@@ -22,6 +22,8 @@ interface GroupedRowProps {
   /** Renders the row as a button. */
   onClick?: () => void;
   disabled?: boolean;
+  /** Announced as unavailable but stays focusable (use when focus is on the row). */
+  ariaDisabled?: boolean;
   current?: boolean;
   pressed?: boolean;
   label?: string;
@@ -40,6 +42,7 @@ export function GroupedRow({
   to,
   onClick,
   disabled,
+  ariaDisabled,
   current,
   pressed,
   label,
@@ -72,6 +75,7 @@ export function GroupedRow({
         type="button"
         onClick={onClick}
         disabled={disabled}
+        aria-disabled={ariaDisabled || undefined}
         aria-pressed={pressed}
         aria-label={label}
         className={cn(rowBase, rowInteractive, className)}

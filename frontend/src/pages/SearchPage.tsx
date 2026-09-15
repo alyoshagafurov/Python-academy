@@ -76,6 +76,7 @@ export function SearchPage() {
   return (
     <PageTransition>
       <Container size="narrow" className="pb-24 pt-12 md:pt-20">
+        <title>Поиск — Python Academy</title>
         <h1 className="text-title1 font-bold tracking-[-0.025em] text-fg">Поиск</h1>
         <p className="mt-3 text-body text-fg-muted">Ищи по названиям тем и теории всех курсов.</p>
 
@@ -159,7 +160,8 @@ export function SearchPage() {
                       <Highlight text={hit.title} query={query} />
                     </span>
                     <span className="mt-0.5 block text-caption text-fg-muted">
-                      {hit.course_title} · {hit.topic_name}
+                      {hit.course_title}
+                      {hit.topic_name && hit.topic_name !== hit.title && ` · ${hit.topic_name}`}
                     </span>
                     {hit.snippet && (
                       <span className="mt-1 line-clamp-2 block text-caption text-fg-muted">{hit.snippet}</span>

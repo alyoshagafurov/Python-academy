@@ -20,8 +20,11 @@ const steps = [
   { title: "Аналогия", text: "Сравнение из жизни, с которого начинается тема." },
   { title: "Теория и пример", text: "Коротко о главном и рабочий код." },
   { title: "Разбор кода", text: "Что делает каждая строка." },
-  { title: "Объяснить проще", text: "Та же тема другими словами, если осталось непонятно." },
+  { title: "Проверка и наставник", text: "Вопрос по теме. Ошибся — наставник наведёт на ответ, а не выдаст его сразу." },
 ];
+
+// The first course for someone who has never programmed (see the FAQ below).
+const START_COURSE = "/courses/python_beginner";
 
 const path = [
   { id: "python_beginner", title: "Python Beginner", text: "Синтаксис, типы, циклы, функции" },
@@ -42,7 +45,7 @@ const faq = [
   },
   {
     q: "Как работает «Объяснить проще»?",
-    a: "Под теорией выбери удобный стиль — например, на пальцах или по шагам. Тема будет пересказана другими словами по материалам того же урока.",
+    a: "После примера выбери удобный стиль — например, на пальцах или по шагам. Тема будет пересказана другими словами по материалам того же урока.",
   },
   {
     q: "Что делать, если ответил неправильно в проверке?",
@@ -67,6 +70,7 @@ export function LandingPage() {
 
   return (
     <PageTransition>
+      <title>Python Academy — Python и математика с нуля</title>
       {/* 1 — Hero */}
       <section className="pb-20 pt-12 md:pb-32 md:pt-16">
         <Container size="wide">
@@ -83,7 +87,7 @@ export function LandingPage() {
               Каждая тема — через пример из жизни, короткую теорию и код. От первой строки до backend.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
-              <ButtonLink to="/courses" size="lg" pill>
+              <ButtonLink to={START_COURSE} size="lg" pill>
                 Начать учиться
               </ButtonLink>
               <a
@@ -233,7 +237,7 @@ export function LandingPage() {
               Первый урок — через минуту.
             </h2>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
-              <ButtonLink to="/courses" size="lg" pill>
+              <ButtonLink to={START_COURSE} size="lg" pill>
                 Начать учиться
               </ButtonLink>
               <a
@@ -263,7 +267,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
           type="button"
           id={`${id}-q`}
           aria-expanded={open}
-          aria-controls={`${id}-a`}
+          aria-controls={open ? `${id}-a` : undefined}
           onClick={() => setOpen((v) => !v)}
           className="flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left text-body font-semibold text-fg"
         >

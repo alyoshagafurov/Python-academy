@@ -3,6 +3,7 @@ import { LazyMotion, domAnimation } from "framer-motion";
 import { LoginModalProvider } from "@/hooks/useLoginModal";
 import { LessonPrefetch } from "@/components/LessonPrefetch";
 import { Navbar } from "./Navbar";
+import { RouteAnnouncer } from "./RouteAnnouncer";
 import { Footer } from "./Footer";
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -12,6 +13,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <LazyMotion features={domAnimation} strict>
       <LoginModalProvider>
         <LessonPrefetch />
+        <RouteAnnouncer />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-2 focus:z-50 focus:rounded-xl focus:bg-bg focus:px-4 focus:py-3 focus:text-body focus:text-fg"

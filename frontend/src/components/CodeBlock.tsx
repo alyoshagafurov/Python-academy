@@ -52,6 +52,7 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
         <button
           type="button"
           onClick={copy}
+          aria-label={copied ? "Скопировано" : isCalc ? "Копировать расчёт" : "Копировать код"}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-caption text-fg-muted transition-colors duration-150 ease-out hover:text-fg"
         >
           {copied ? <Check size={16} className="text-success" aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
@@ -59,8 +60,15 @@ export function CodeBlock({ code, lang = "python", className }: CodeBlockProps) 
         </button>
       </div>
       {/* Long lines scroll inside this region on a narrow screen, so it must take keyboard focus (WCAG 2.1.1). */}
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrollable region has to be focusable */}
-      <div tabIndex={0} role="region" aria-label={isCalc ? "Расчёт" : `Код, ${lang}`} className="overflow-x-auto rounded-b-xl">
+      {/* Code is English: lang="en" gives screen readers the right voice inside the Russian page. */}
+      <div
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrollable region has to be focusable
+        tabIndex={0}
+        role="region"
+        aria-label={isCalc ? "Расчёт" : `Код, ${lang}`}
+        lang={isCalc ? undefined : "en"}
+        className="overflow-x-auto rounded-b-xl"
+      >
         {isCalc ? (
           <pre className={cn("font-mono text-fg tabular", body)}>{code}</pre>
         ) : html ? (

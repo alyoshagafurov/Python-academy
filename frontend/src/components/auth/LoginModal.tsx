@@ -108,10 +108,20 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
             </div>
           )}
 
-          {!config?.telegram_enabled && (
-            <p className="mt-6 text-caption text-fg-muted">
-              Telegram-вход включится в проде (нужен TELEGRAM_BOT_TOKEN и домен).
-            </p>
+          {config && !config.telegram_enabled && !config.dev_auth_enabled && (
+            <div className="mt-6">
+              <p className="text-caption text-fg-muted">
+                Вход на сайте сейчас недоступен. Уроки можно читать без входа, а прогресс сохраняется в боте.
+              </p>
+              <a
+                href={`https://t.me/${config.telegram_bot_username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex min-h-11 items-center text-body font-medium text-link hover:underline"
+              >
+                Открыть бота в Telegram
+              </a>
+            </div>
           )}
 
           {error && (
@@ -121,7 +131,7 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
           )}
           {busy && (
             <p role="status" className="mt-4 flex items-center gap-2 text-caption text-fg-muted">
-              <Spinner label="Входим" /> Входим…
+              <Spinner decorative /> Входим…
             </p>
           )}
         </DialogFrame>

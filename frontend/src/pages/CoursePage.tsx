@@ -75,6 +75,7 @@ export function CoursePage() {
           Все курсы
         </Link>
 
+        <title>{`${course.title} — Python Academy`}</title>
         <h1 className="mt-6 text-title1 font-bold tracking-[-0.025em] text-fg">{course.title}</h1>
         {course.description && (
           <p className="mt-4 max-w-[60ch] text-body text-fg-muted md:text-title3">{course.description}</p>
@@ -135,7 +136,7 @@ function StageGroup({
       <button
         type="button"
         aria-expanded={open}
-        aria-controls={`${id}-list`}
+        aria-controls={open ? `${id}-list` : undefined}
         onClick={() => setOpen((v) => !v)}
         className="flex min-h-14 w-full items-center gap-3 rounded-xl text-left"
       >
@@ -192,7 +193,7 @@ function LessonRow({ lesson, courseId }: { lesson: LessonBrief; courseId: string
       }
       trailing={
         <>
-          {lesson.bookmarked && <Bookmark size={16} className="fill-current" aria-label="В избранном" />}
+          {lesson.bookmarked && <Bookmark size={16} className="fill-current" role="img" aria-label="В избранном" />}
           <ChevronRight size={18} aria-hidden="true" />
         </>
       }

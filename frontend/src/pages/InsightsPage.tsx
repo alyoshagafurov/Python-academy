@@ -56,6 +56,7 @@ export function InsightsPage() {
         <Link to="/courses" className="-ml-1 inline-flex min-h-11 items-center gap-1 text-caption text-link hover:underline">
           <ChevronLeft size={16} aria-hidden="true" />К курсам
         </Link>
+        <title>Аналитика наставника — Python Academy</title>
         <h1 className="mt-6 text-title1 font-bold tracking-[-0.025em] text-fg">Mentor Insights</h1>
         <p className="mt-3 max-w-[60ch] text-body text-fg-muted">
           Валидация zero-token наставника. Обновляется каждые 15 секунд. Всего событий:{" "}

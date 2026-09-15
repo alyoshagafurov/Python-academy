@@ -6,7 +6,7 @@ colors:
   surface: "#f5f5f7"
   surface-hover: "#ededf0"
   fg: "#1d1d1f"
-  fg-muted: "#6e6e73"
+  fg-muted: "#6a6a6f"
   line: "#d2d2d7"
   accent: "#0071e3"
   accent-hover: "#0062c4"
