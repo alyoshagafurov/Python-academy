@@ -43,7 +43,7 @@ export function CoursePage() {
 
   if (isLoading || !course) {
     return (
-      <Container size="text" className="pb-24 pt-12 md:pt-20" aria-busy="true">
+      <Container size="text" className="min-h-dvh pb-24 pt-12 md:pt-20" aria-busy="true">
         <Skeleton className="h-10 w-2/3" />
         <Skeleton className="mt-4 h-6 w-full" />
         <Skeleton className="mt-8 h-12 w-40 rounded-full" />

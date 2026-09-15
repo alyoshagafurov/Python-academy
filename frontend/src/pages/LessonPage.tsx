@@ -124,7 +124,8 @@ export function LessonPage() {
 
   if (isLoading || !lesson) {
     return (
-      <Container size="wide" className="pb-24 pt-10" aria-busy="true">
+      // Viewport-tall placeholder: the footer must not sit on screen and jump when the lesson arrives.
+      <Container size="wide" className="min-h-dvh pb-24 pt-10" aria-busy="true">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[240px_minmax(0,1fr)]">
           <div className="hidden space-y-2 lg:block">
             {Array.from({ length: 8 }).map((_, i) => (
