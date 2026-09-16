@@ -38,5 +38,5 @@ books/
 
 # Impeccable local build state
 .impeccable/build/
-# QA screenshot matrix: local evidence for a stage, ~20 MB per run
-qa/
+# Design critique snapshots: local run artefacts, regenerated on demand
+.impeccable/critique/
