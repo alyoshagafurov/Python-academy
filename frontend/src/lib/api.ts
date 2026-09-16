@@ -1,23 +1,15 @@
 import type {
-  AuthConfig,
-  BookmarkItem,
   CourseCard,
   CourseDetail,
-  DevUser,
   ExplainView,
   LessonFull,
   LessonSimple,
-  MentorAnalytics,
   MentorEvent,
   MentorHint,
   MentorStyle,
-  Profile,
-  ReadResult,
-  Recommendation,
   RelatedItem,
   SearchHit,
   Stats,
-  User,
 } from "./types";
 import { getAnonId } from "./anon";
 
@@ -31,8 +23,9 @@ class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // No cookies anywhere: the site has no accounts. The anon id is a client-side
+  // label for mentor rate limits, not an identity.
   const res = await fetch(`${BASE}${path}`, {
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       "X-Anon-Id": getAnonId(),
@@ -58,22 +51,6 @@ export const api = {
   // meta
   stats: () => request<Stats>("/api/stats"),
 
-  // auth
-  authConfig: () => request<AuthConfig>("/api/auth/config"),
-  session: () => request<{ user: User | null }>("/api/auth/session"),
-  devUsers: () => request<{ users: DevUser[] }>("/api/auth/dev/users"),
-  devLogin: (user_id: number, username?: string) =>
-    request<{ user: User | null }>("/api/auth/dev", {
-      method: "POST",
-      body: JSON.stringify({ user_id, username }),
-    }),
-  telegramLogin: (payload: Record<string, unknown>) =>
-    request<{ user: User | null }>("/api/auth/telegram", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-  logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
-
   // courses
   courses: () => request<{ courses: CourseCard[] }>("/api/courses"),
   course: (id: string) => request<CourseDetail>(`/api/courses/${id}`),
@@ -87,27 +64,11 @@ export const api = {
     request<{ items: RelatedItem[] }>(
       `/api/courses/${courseId}/lessons/${lessonId}/related`,
     ),
-  markRead: (courseId: string, lessonId: number) =>
-    request<ReadResult>(`/api/courses/${courseId}/lessons/${lessonId}/read`, {
-      method: "POST",
-    }),
-
   // search
   search: (q: string, limit = 12) =>
     request<{ query: string; hits: SearchHit[] }>(
       `/api/search?q=${encodeURIComponent(q)}&limit=${limit}`,
     ),
-
-  // me
-  profile: () => request<Profile>("/api/me"),
-  bookmarks: () => request<{ items: BookmarkItem[] }>("/api/me/bookmarks"),
-  recommendations: () =>
-    request<{ items: Recommendation[] }>("/api/me/recommendations"),
-  toggleBookmark: (course_id: string, lesson_id: number) =>
-    request<{ bookmarked: boolean }>("/api/bookmarks", {
-      method: "POST",
-      body: JSON.stringify({ course_id, lesson_id }),
-    }),
 
   // mentor (validation MVP)
   mentorHint: (course_id: string, lesson_id: number) =>
@@ -121,7 +82,6 @@ export const api = {
       body: JSON.stringify({ course_id, lesson_id, style }),
     }),
   mentorStyles: () => request<{ styles: MentorStyle[] }>("/api/mentor/styles"),
-  mentorAnalytics: () => request<MentorAnalytics>("/api/mentor/analytics"),
   // Fire-and-forget telemetry — never let logging break the UX.
   mentorEvent: (
     type: MentorEvent,

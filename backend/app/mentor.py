@@ -11,8 +11,21 @@ hand-off would have happened, to measure real demand.
 """
 from __future__ import annotations
 
+import re
+
 from app import bot_bridge as bot
 from app import content
+
+# Replies are plain text: lesson content of older courses may carry emoji
+# (e.g. at the start of an analogy), so strip them from what the mentor says.
+# Whole symbol blocks on purpose: check marks, stars and warning signs go too;
+# arrows, maths signs and superscripts stay.
+_EMOJI_RE = re.compile("[\\U0001F000-\\U0001FAFF\\u2600-\\u27BF\\u2B00-\\u2BFF\\uFE0F\\u200D]+ ?")
+
+
+def _no_emoji(text: str) -> str:
+    return _EMOJI_RE.sub("", text or "")
+
 
 HINT_RUNGS = 5
 
@@ -55,16 +68,16 @@ def build_hint(course_id: str, lesson_id: int, rung: int) -> dict | None:
     if r == 1:  # gentle Socratic nudge
         kind = "question"
         text = (
-            f"🔗 Вспомни аналогию: {assoc}\n\nКак это относится к вопросу? Не спеши выбирать."
+            f"Вспомни аналогию: {assoc}\n\nКак это относится к вопросу? Не спеши выбирать."
             if assoc
             else f"Не торопись. Что ты уже знаешь про «{topic}»? Прикинь, какой вариант логичнее, и попробуй ещё раз."
         )
     elif r == 2:  # nudge toward the common pitfall
         kind = "hint"
         if mistakes:
-            text = f"⚠️ Тут легко споткнуться: {mistakes[0]}\n\nПроверь, не в этом ли дело."
+            text = f"Тут легко споткнуться: {mistakes[0]}\n\nПроверь, не в этом ли дело."
         elif lesson.example:
-            text = "Подсказка прямо в примере выше 👆 — перечитай его внимательно и попробуй снова."
+            text = "Подсказка прямо в примере выше — перечитай его внимательно и попробуй снова."
         else:
             text = f"Сосредоточься на сути темы «{topic}». Что здесь главное?"
     elif r == 3:  # point at the concrete example
@@ -88,7 +101,7 @@ def build_hint(course_id: str, lesson_id: int, rung: int) -> dict | None:
     else:  # r == 5 — full walkthrough (only after the climb)
         kind = "solution"
         text = (
-            (f"✅ Правильный ответ: «{correct_opt}».\n\n" if correct_opt else "")
+            (f"Правильный ответ: «{correct_opt}».\n\n" if correct_opt else "")
             + (f"Почему: {explanation}" if explanation else "Сверься с примером и определением темы выше.")
         )
 
@@ -96,7 +109,7 @@ def build_hint(course_id: str, lesson_id: int, rung: int) -> dict | None:
         "rung": r,
         "total": HINT_RUNGS,
         "kind": kind,
-        "text": text,
+        "text": _no_emoji(text),
         "is_solution": r >= HINT_RUNGS,
         "can_escalate": r < HINT_RUNGS,
     }
@@ -126,15 +139,15 @@ def build_explanation(course_id: str, lesson_id: int, style: str) -> dict | None
 
     if style == "analogy":
         if assoc:
-            blocks.append({"kind": "text", "text": f"🔗 {assoc}"})
+            blocks.append({"kind": "text", "text": f"{assoc}"})
         if real:
-            blocks.append({"kind": "text", "text": f"💼 В реальности: {real}"})
+            blocks.append({"kind": "text", "text": f"В реальности: {real}"})
     elif style == "example":
         if lesson.example:
             blocks.append({"kind": "code", "text": lesson.example})
         ce = content.plain(lesson.code_explained)
         if ce:
-            blocks.append({"kind": "text", "text": f"🔑 {ce}"})
+            blocks.append({"kind": "text", "text": f"{ce}"})
     elif style == "steps":
         ce = content.plain(lesson.code_explained)
         steps = [s.strip(" •") for s in ce.replace("•", "\n").split("\n") if s.strip(" •")]
@@ -144,19 +157,19 @@ def build_explanation(course_id: str, lesson_id: int, style: str) -> dict | None
             blocks.append({"kind": "text", "text": gist})
     elif style == "life":
         if real:
-            blocks.append({"kind": "text", "text": f"💼 {real}"})
+            blocks.append({"kind": "text", "text": f"{real}"})
         if assoc:
-            blocks.append({"kind": "text", "text": f"🔗 {assoc}"})
+            blocks.append({"kind": "text", "text": f"{assoc}"})
     else:  # "prosto" — на пальцах (default)
         if assoc:
-            blocks.append({"kind": "text", "text": f"🔗 {assoc}"})
+            blocks.append({"kind": "text", "text": f"{assoc}"})
         if gist:
             blocks.append({"kind": "text", "text": f"В двух словах: {gist}"})
         if mistakes:
-            blocks.append({"kind": "text", "text": f"⚠️ Не споткнись: {mistakes[0]}"})
+            blocks.append({"kind": "text", "text": f"Не споткнись: {mistakes[0]}"})
 
     # Fallback so a style never renders empty.
     if not blocks:
         blocks.append({"kind": "text", "text": gist or assoc or "Перечитай пример выше — он показывает суть."})
 
-    return {"style": style, "blocks": blocks}
+    return {"style": style, "blocks": [{**b, "text": _no_emoji(b["text"])} for b in blocks]}

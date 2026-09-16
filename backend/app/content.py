@@ -6,20 +6,36 @@ bot's loader — this module only *shapes* it for the frontend.
 """
 from __future__ import annotations
 
+import hashlib
 import html
+import random
 import re
-from typing import Iterable
+from functools import lru_cache
 
 from app import bot_bridge as bot
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
 
+# Pictographic emoji, dingbats/symbols blocks, variation selector, ZWJ.
+_EMOJI = "[\U0001F000-\U0001FAFF☀-➿⬀-⯿️‍]"
+_EMOJI_LINE_START_RE = re.compile(rf"(?m)^[ \t]*{_EMOJI}+[ \t]*")
+_EMOJI_INLINE_RE = re.compile(rf"[ \t]*{_EMOJI}+")
+
+
+def no_emoji(text: str | None) -> str:
+    """Drop emoji from bot content shown as site text («рюкзак 🎒:» → «рюкзак:»).
+    Never applied to code fields (example, check code): there they are data."""
+    if not text:
+        return text or ""
+    return _EMOJI_INLINE_RE.sub("", _EMOJI_LINE_START_RE.sub("", text))
+
 # Web-only per-course metadata (level + cover accent). Keyed by course id.
 COURSE_META: dict[str, dict] = {
     "python_beginner": {"level": "Новичок",    "level_order": 1, "accent": "#22c55e", "gradient": ["#16a34a", "#22c55e"]},
     "python_minecraft": {"level": "Новичок",    "level_order": 1, "accent": "#65a30d", "gradient": ["#4d7c0f", "#84cc16"]},
     "web_htmlcss":      {"level": "Новичок",    "level_order": 1, "accent": "#ec4899", "gradient": ["#db2777", "#f472b6"]},
+    "math_thinking":    {"level": "Новичок",    "level_order": 1, "accent": "#2563eb", "gradient": ["#1d4ed8", "#3b82f6"]},
     "web_python":       {"level": "Средний",    "level_order": 2, "accent": "#3b82f6", "gradient": ["#2563eb", "#38bdf8"]},
     "python_student":   {"level": "Продвинутый", "level_order": 3, "accent": "#a855f7", "gradient": ["#7c3aed", "#c084fc"]},
 }
@@ -39,65 +55,57 @@ def topic_name(topic: str) -> str:
     try:
         from utils.constants import topic_name as _tn  # bot module (on sys.path)
 
-        return _tn(topic) or topic
+        name = _tn(topic) or ""
     except Exception:
-        return topic
+        name = ""
+    if name and name != topic:
+        return no_emoji(name)
+    # No name in the bot's constants (the bot echoes the raw key back, e.g. for
+    # math_* topics): show the title of the first lesson with this topic instead.
+    return no_emoji(_lesson_titles_by_topic().get(topic, name or topic))
+
+
+@lru_cache(maxsize=1)
+def _lesson_titles_by_topic() -> dict[str, str]:
+    """topic key → title of the first lesson that uses it (content is static per process)."""
+    titles: dict[str, str] = {}
+    for course in bot.all_courses().values():
+        for lesson in course.lessons:
+            if lesson.topic:
+                titles.setdefault(lesson.topic, lesson.title)
+    return titles
 
 
 # ─────────────────────────────── lessons ──────────────────────────────────
 
-def lesson_status(lesson_id: int, current_lesson: int | None) -> str:
-    """Web statuses: done / current / todo (no hard locks — free browsing)."""
-    if current_lesson is None:
-        return "todo"
-    if lesson_id < current_lesson:
-        return "done"
-    if lesson_id == current_lesson:
-        return "current"
-    return "todo"
-
-
-def lesson_brief(
-    course_id: str,
-    lesson: "bot.Lesson",
-    current_lesson: int | None = None,
-    bookmarked: bool = False,
-) -> dict:
+def lesson_brief(course_id: str, lesson: "bot.Lesson") -> dict:
     """Compact lesson shape for trees / lists."""
     return {
         "id": lesson.id,
         "course_id": course_id,
         "stage_id": lesson.stage_id,
-        "title": lesson.title,
+        "title": no_emoji(lesson.title),
         "topic": lesson.topic,
         "topic_name": topic_name(lesson.topic),
-        "xp": lesson.xp,
-        "status": lesson_status(lesson.id, current_lesson),
-        "bookmarked": bookmarked,
+        # No XP: without accounts there is no progress to score.
         "placeholder": lesson.placeholder,
     }
 
 
-def lesson_full(
-    course_id: str,
-    lesson: "bot.Lesson",
-    current_lesson: int | None = None,
-    bookmarked: bool = False,
-    nav: dict | None = None,
-) -> dict:
+def lesson_full(course_id: str, lesson: "bot.Lesson", nav: dict | None = None) -> dict:
     """Full lesson body for the reading view."""
     course = bot.get_course(course_id)
     return {
-        **lesson_brief(course_id, lesson, current_lesson, bookmarked),
-        "course_title": course.title,
+        **lesson_brief(course_id, lesson),
+        "course_title": no_emoji(course.title),
         "course_emoji": course.emoji,
-        "theory": lesson.theory,
-        "association": lesson.association,
-        "real_example": lesson.real_example,
-        "example": lesson.example,
-        "code_explained": lesson.code_explained,
-        "common_mistakes": list(lesson.common_mistakes),
-        "check": lesson_check(lesson),
+        "theory": no_emoji(lesson.theory),
+        "association": no_emoji(lesson.association),
+        "real_example": no_emoji(lesson.real_example),
+        "example": lesson.example,  # code: shown as authored
+        "code_explained": no_emoji(lesson.code_explained),
+        "common_mistakes": [no_emoji(m) for m in lesson.common_mistakes],
+        "check": lesson_check(lesson, course_id),
         "nav": nav or {"prev_id": None, "next_id": None},
     }
 
@@ -107,24 +115,48 @@ def _quiz_public(q) -> dict | None:
     if q is None:
         return None
     return {
-        "question": html.unescape(q.question or ""),
-        "options": [html.unescape(o) for o in q.options],
+        "question": no_emoji(html.unescape(q.question or "")),
+        "options": [no_emoji(html.unescape(o)) for o in q.options],
         "correct": int(q.correct),
-        "explanation": html.unescape(q.explanation or ""),
+        "explanation": no_emoji(html.unescape(q.explanation or "")),
         "code": q.code or "",  # raw code shown in a code block
     }
 
 
-def lesson_check(lesson: "bot.Lesson") -> dict | None:
+def lesson_check(lesson: "bot.Lesson", course_id: str | None = None) -> dict | None:
     """One gentle self-check for the lesson (retrieval practice).
 
     Reuses the lesson's existing quiz data. Prefers a "predict the output"
     style (a question that ships code), then the quiz, challenge, practice.
+    With ``course_id`` the options are shown in the site's stable shuffled order;
+    without it they keep the bot's order (the mentor names the answer by text,
+    so both agree on what is right).
     """
     candidates = [lesson.challenge, lesson.quiz, lesson.practice]
     with_code = next((q for q in candidates if q and q.code), None)
     chosen = with_code or lesson.quiz or lesson.challenge or lesson.practice
-    return _quiz_public(chosen)
+    check = _quiz_public(chosen)
+    if check is None or course_id is None:
+        return check
+    kind = next(k for k in ("challenge", "quiz", "practice") if getattr(lesson, k) is chosen)
+    return _shuffle_options(check, course_id, lesson.id, kind)
+
+
+def _shuffle_options(check: dict, course_id: str, lesson_id: int, kind: str) -> dict:
+    """The bot's content puts almost every right answer first. The site moves it:
+    the right answer's position rotates lesson by lesson (a per-course offset plus
+    the lesson id), and the other options are shuffled with the seed
+    course_id:lesson_id:kind. The same lesson always shows the same order."""
+    options = check["options"]
+    count, correct = len(options), check["correct"]
+    if count < 2 or not 0 <= correct < count:
+        return check
+    offset = int.from_bytes(hashlib.sha256(course_id.encode()).digest()[:4], "big")
+    target = (offset + lesson_id) % count
+    others = [i for i in range(count) if i != correct]
+    random.Random(f"{course_id}:{lesson_id}:{kind}").shuffle(others)
+    order = others[:target] + [correct] + others[target:]
+    return {**check, "options": [options[i] for i in order], "correct": target}
 
 
 def lesson_simple(lesson: "bot.Lesson") -> dict:
@@ -150,17 +182,14 @@ def lesson_simple(lesson: "bot.Lesson") -> dict:
 
 # ─────────────────────────────── courses ──────────────────────────────────
 
-def course_card(course: "bot.Course", current_lesson: int | None = None) -> dict:
+def course_card(course: "bot.Course") -> dict:
     """Course shape for the catalog/landing cards."""
-    done, total, percent = bot.course_service.course_progress(
-        current_lesson or 1, course
-    ) if current_lesson is not None else (0, course.total, 0)
     meta = course_meta(course.id)
     return {
         "id": course.id,
-        "title": course.title,
+        "title": no_emoji(course.title),
         "emoji": course.emoji,
-        "description": course.description or "",
+        "description": no_emoji(course.description or ""),
         "language": course.language,
         "track": course.track,
         "level": meta["level"],
@@ -169,37 +198,22 @@ def course_card(course: "bot.Course", current_lesson: int | None = None) -> dict
         "gradient": meta["gradient"],
         "total_lessons": course.total,
         "stages_count": len(course.stages),
-        "progress": {"done": done, "total": total, "percent": percent}
-        if current_lesson is not None
-        else None,
     }
 
 
-def course_detail(
-    course: "bot.Course",
-    current_lesson: int | None = None,
-    bookmarked_ids: Iterable[int] = (),
-) -> dict:
-    """Full course tree: stages → lessons, with progress + bookmark flags."""
-    bm = set(bookmarked_ids)
-    cur = current_lesson if current_lesson is not None else None
-    stages = []
-    for stage in course.stages:
-        sp = bot.course_service.stage_progress(stage, cur or 1) if cur is not None else None
-        stages.append({
+def course_detail(course: "bot.Course") -> dict:
+    """Full course tree: stages → lessons."""
+    stages = [
+        {
             "id": stage.id,
-            "title": stage.title,
-            "subtitle": stage.subtitle,
+            "title": no_emoji(stage.title),
+            "subtitle": no_emoji(stage.subtitle),
             "emoji": stage.emoji,
-            "status": (sp.status if sp and sp.status != "locked" else "todo") if sp else "todo",
-            "done": sp.done if sp else 0,
             "total": stage.total,
-            "percent": sp.percent if sp else 0,
-            "lessons": [
-                lesson_brief(course.id, lesson, cur, lesson.id in bm)
-                for lesson in stage.lessons
-            ],
-        })
-    card = course_card(course, cur)
+            "lessons": [lesson_brief(course.id, lesson) for lesson in stage.lessons],
+        }
+        for stage in course.stages
+    ]
+    card = course_card(course)
     card["stages"] = stages
     return card

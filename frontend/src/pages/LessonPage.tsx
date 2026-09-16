@@ -1,40 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  ArrowLeft,
-  ArrowRight,
-  BookOpen,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Circle,
-  Clock,
-  Code2,
-  Briefcase,
-  Lightbulb,
-  PlayCircle,
-  Star,
-  TriangleAlert,
-} from "lucide-react";
-import { api } from "@/lib/api";
-import type { CourseDetail } from "@/lib/types";
-import { useAuth } from "@/hooks/useAuth";
-import { useLoginModal } from "@/hooks/useLoginModal";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, ListOrdered } from "lucide-react";
+import { api, ApiError } from "@/lib/api";
+import { langForCourse } from "@/lib/codeLang";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Container } from "@/components/ui/Container";
+import { GroupedList, GroupedRow } from "@/components/ui/GroupedList";
+import { Sheet } from "@/components/ui/Sheet";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/State";
 import { PageTransition } from "@/components/PageTransition";
 import { CodeBlock } from "@/components/CodeBlock";
 import { TheoryRenderer } from "@/components/TheoryRenderer";
 import { PredictCheck } from "@/components/PredictCheck";
 import { LivePreview } from "@/components/LivePreview";
 import { AdaptiveExplainer } from "@/components/mentor/AdaptiveExplainer";
-import { langForCourse } from "@/lib/shiki";
-import { cn } from "@/lib/utils";
+import { LessonToc } from "@/components/lesson/LessonToc";
+import { LessonMistakes } from "@/components/lesson/LessonMistakes";
+import { OwnWords } from "@/components/lesson/OwnWords";
 
 function readMinutes(...texts: string[]): number {
   const chars = texts.join(" ").replace(/<[^>]+>/g, "").length;
@@ -44,17 +29,10 @@ function readMinutes(...texts: string[]): number {
 export function LessonPage() {
   const { courseId = "", lessonId = "" } = useParams();
   const lid = parseInt(lessonId, 10);
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const { user } = useAuth();
-  const { open: openLogin } = useLoginModal();
-
-  const [showMistakes, setShowMistakes] = useState(false);
-  const [readFlash, setReadFlash] = useState<string | null>(null);
-  const [ownWords, setOwnWords] = useState("");
+  const [tocOpen, setTocOpen] = useState(false);
   const viewedRef = useRef("");
 
-  const { data: lesson, isLoading } = useQuery({
+  const { data: lesson, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["lesson", courseId, lid],
     queryFn: () => api.lesson(courseId, lid),
   });
@@ -66,11 +44,17 @@ export function LessonPage() {
     queryKey: ["related", courseId, lid],
     queryFn: () => api.lessonRelated(courseId, lid),
   });
+  // The route keeps this component mounted between lessons: a new lesson starts
+  // with its own state (adjusted during render, not in an effect).
+  const lessonKey = `${courseId}:${lid}`;
+  const [shownLesson, setShownLesson] = useState(lessonKey);
+  if (shownLesson !== lessonKey) {
+    setShownLesson(lessonKey);
+    setTocOpen(false);
+  }
   useEffect(() => {
-    setShowMistakes(false);
-    setReadFlash(null);
-    setOwnWords("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Instant, not smooth: no motion on navigation.
+    window.scrollTo(0, 0);
   }, [courseId, lid]);
 
   // Telemetry: one lesson_view per lesson once it loads (mentor analytics).
@@ -87,419 +71,266 @@ export function LessonPage() {
     const stage = course.stages.find((s) => s.id === lesson.stage_id);
     if (!stage) return null;
     const pos = stage.lessons.findIndex((l) => l.id === lid) + 1;
-    return { title: stage.title, emoji: stage.emoji, pos, total: stage.lessons.length };
+    return { title: stage.title, pos, total: stage.lessons.length };
   }, [course, lesson, lid]);
 
-  const bookmarkMut = useMutation({
-    mutationFn: () => api.toggleBookmark(courseId, lid),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lesson", courseId, lid] });
-      qc.invalidateQueries({ queryKey: ["course", courseId] });
-      qc.invalidateQueries({ queryKey: ["bookmarks"] });
-    },
-  });
-
-  const readMut = useMutation({
-    mutationFn: () => api.markRead(courseId, lid),
-    onSuccess: (res) => {
-      api.mentorEvent("lesson_read", courseId, lid, { title: lesson?.title });
-      setReadFlash(res.awarded ? `+${res.xp_gain} XP — тема пройдена!` : "Отмечено прочитанным");
-      qc.invalidateQueries({ queryKey: ["lesson", courseId, lid] });
-      qc.invalidateQueries({ queryKey: ["course", courseId] });
-      qc.invalidateQueries({ queryKey: ["profile"] });
-      setTimeout(() => setReadFlash(null), 3500);
-    },
-  });
+  const titleById = useMemo(() => {
+    const map = new Map<number, string>();
+    course?.stages.forEach((s) => s.lessons.forEach((l) => map.set(l.id, l.title)));
+    return map;
+  }, [course]);
 
   const lang = useMemo(() => langForCourse(courseId), [courseId]);
 
-  if (isLoading || !lesson) {
+  if (isError) {
+    // A missing lesson is not a server problem: say so, and don't offer a retry that cannot help.
+    const missing = error instanceof ApiError && error.status === 404;
     return (
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <Skeleton className="mb-4 h-8 w-2/3" />
-        <Skeleton className="h-96 w-full" />
-      </div>
+      <Container size="text" className="py-20">
+        <ErrorState
+          title={missing ? "Такой темы нет" : "Не удалось открыть урок"}
+          text={
+            missing
+              ? "Возможно, в ссылке опечатка. Вернись к курсу и выбери тему из списка."
+              : "Сервер не отвечает. Проверь подключение и попробуй ещё раз."
+          }
+          onRetry={missing ? undefined : () => refetch()}
+        />
+      </Container>
     );
   }
 
-  const handleBookmark = () => (user ? bookmarkMut.mutate() : openLogin());
-  const handleRead = () => (user ? readMut.mutate() : openLogin());
+  if (isLoading || !lesson) {
+    return (
+      // Viewport-tall placeholder: the footer must not sit on screen and jump when the lesson arrives.
+      <Container size="wide" className="min-h-dvh pb-24 pt-10" aria-busy="true">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="hidden space-y-2 lg:block">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-full rounded-lg" />
+            ))}
+          </div>
+          <div className="max-w-[68ch]">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="mt-6 h-10 w-3/4" />
+            <Skeleton className="mt-8 h-28 w-full" />
+            <Skeleton className="mt-12 h-64 w-full" />
+          </div>
+        </div>
+      </Container>
+    );
+  }
+
   const mins = readMinutes(lesson.theory, lesson.code_explained);
+  const meta = [
+    stageInfo?.title,
+    stageInfo && `Тема ${stageInfo.pos} из ${stageInfo.total}`,
+    lesson.topic_name,
+    `${mins} мин чтения`,
+  ].filter(Boolean);
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <Link
-          to={`/courses/${courseId}`}
-          className="mb-5 inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg"
-        >
-          <ArrowLeft size={15} /> {lesson.course_emoji} {lesson.course_title}
-        </Link>
-
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[250px_minmax(0,1fr)_260px]">
-          {/* ───── Left: collapsible tree ───── */}
-          {course && <LessonSidebar course={course} currentId={lid} />}
-
-          {/* ───── Center ───── */}
-          <article className="min-w-0">
-            {/* Friendly header */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-subtle">
-              {stageInfo && (
-                <span className="font-medium text-fg-muted">
-                  {stageInfo.emoji} {stageInfo.title}
-                </span>
-              )}
-              {stageInfo && (
-                <span className="inline-flex items-center gap-1">
-                  <BookOpen size={13} /> Тема {stageInfo.pos} из {stageInfo.total}
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1">
-                <Clock size={13} /> {mins} мин чтения
-              </span>
-            </div>
-
-            <div className="mt-3 flex items-start justify-between gap-4">
-              <div>
-                <Badge tone="primary">{lesson.topic_name}</Badge>
-                <h1 className="mt-3 text-3xl font-extrabold leading-tight tracking-tight text-fg sm:text-4xl">
-                  {lesson.title}
-                </h1>
+      <title>{`${lesson.title} — Python Academy`}</title>
+      <Container size="wide" className="pb-24 pt-6 md:pt-10">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_220px]">
+          {course && (
+            <aside aria-label="Содержание курса" className="hidden lg:block">
+              <div className="sticky top-[76px] max-h-[calc(100dvh-100px)] overflow-y-auto overscroll-contain pb-8">
+                <LessonToc course={course} currentId={lid} />
               </div>
-              <button
-                onClick={handleBookmark}
-                aria-label="В избранное"
-                className={cn(
-                  "grid h-11 w-11 shrink-0 place-items-center rounded-xl border transition-colors",
-                  lesson.bookmarked
-                    ? "border-accent/40 bg-accent/10 text-accent"
-                    : "border-border text-fg-muted hover:bg-card-hover hover:text-fg",
-                )}
+            </aside>
+          )}
+
+          <article className="min-w-0 max-w-[68ch]">
+            <div className="flex items-center justify-between gap-3">
+              <Link
+                to={`/courses/${courseId}`}
+                className="-ml-1 inline-flex min-h-11 min-w-0 items-center gap-1 text-caption text-link hover:underline"
               >
-                <Star size={18} className={lesson.bookmarked ? "fill-accent" : ""} />
-              </button>
+                <ChevronLeft size={16} className="shrink-0" aria-hidden="true" />
+                <span className="truncate">{lesson.course_title}</span>
+              </Link>
+              {course && (
+                <Button
+                  variant="secondary"
+                  className="shrink-0 px-4 text-caption lg:hidden"
+                  aria-haspopup="dialog"
+                  onClick={() => setTocOpen(true)}
+                >
+                  <ListOrdered size={16} aria-hidden="true" />
+                  Содержание
+                </Button>
+              )}
             </div>
 
-            {/* 💡 Analogy — the friendly hook */}
+            <p className="mt-6 text-caption text-fg-muted">{meta.join(" · ")}</p>
+            <h1 className="mt-2 text-title2 font-bold tracking-[-0.025em] text-fg md:text-title1">{lesson.title}</h1>
+
             {lesson.association && (
-              <div className="mt-7 rounded-2xl border border-primary/25 bg-primary-soft/50 p-5">
-                <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary">
-                  <Lightbulb size={14} /> Аналогия
-                </div>
-                <p className="text-lg leading-relaxed text-fg">{lesson.association}</p>
+              <div className="mt-8 rounded-xl bg-surface p-6">
+                <p className="text-caption text-fg-muted">Аналогия</p>
+                <p className="mt-2 text-title3 text-fg">{lesson.association}</p>
               </div>
             )}
 
-            {/* 📖 Theory */}
             {lesson.theory && (
-              <Section icon={BookOpen} label="Разбор темы">
+              <LessonSection title="Разбор темы">
                 <TheoryRenderer html={lesson.theory} />
-              </Section>
+              </LessonSection>
             )}
 
-            {/* 💼 Where it's useful */}
             {lesson.real_example && (
-              <div className="mt-5 flex gap-3 rounded-2xl border border-border bg-card-hover/50 p-4">
-                <Briefcase size={18} className="mt-0.5 shrink-0 text-accent" />
-                <p className="text-fg-muted">
-                  <span className="font-semibold text-fg">Где пригодится: </span>
-                  {lesson.real_example}
-                </p>
-              </div>
+              <p className="mt-6 max-w-[68ch] text-body leading-[1.65] text-fg-muted">
+                <span className="font-semibold text-fg">Где пригодится: </span>
+                {lesson.real_example}
+              </p>
             )}
 
-            {/* 💻 Example + explanation */}
             {lesson.example && (
-              <Section icon={Code2} label="Пример кода">
+              <LessonSection title={lang === "math" ? "Расчёт" : "Пример кода"}>
                 <CodeBlock code={lesson.example} lang={lang} />
                 {lang === "html" && <LivePreview code={lesson.example} />}
                 {lesson.code_explained && (
-                  <div className="mt-4 rounded-2xl border border-border bg-card p-5">
-                    <div className="mb-2 text-sm font-semibold text-fg">🔑 Что здесь происходит</div>
-                    <TheoryRenderer html={lesson.code_explained} className="text-[0.95rem]" />
+                  <div className="mt-6">
+                    <h3 className="text-body font-semibold text-fg">
+                      {lang === "math" ? "Разбор расчёта" : "Что здесь происходит"}
+                    </h3>
+                    <TheoryRenderer html={lesson.code_explained} className="mt-2" />
                   </div>
                 )}
-              </Section>
+              </LessonSection>
             )}
+
+            {/* Adaptive explainer (zero-token mentor): offered while the theory is fresh, before the check */}
+            <AdaptiveExplainer courseId={courseId} lessonId={lid} lang={lang} />
 
             {/* Retrieval practice — predict before you peek (Make It Stick) */}
             {lesson.check && (
-              <PredictCheck check={lesson.check} lang={lang} courseId={courseId} lessonId={lid} />
+              <PredictCheck key={`${courseId}:${lid}`} check={lesson.check} lang={lang} courseId={courseId} lessonId={lid} />
             )}
 
-            {/* ⚠️ Common mistakes — collapsed by default to reduce overwhelm */}
+            {/* Common mistakes — collapsed by default to reduce overwhelm */}
             {lesson.common_mistakes.length > 0 && (
-              <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card">
-                <button
-                  onClick={() => setShowMistakes((v) => !v)}
-                  className="flex w-full items-center gap-2 px-5 py-4 text-left font-semibold text-fg"
-                >
-                  <TriangleAlert size={16} className="text-amber-500" />
-                  Частые ошибки
-                  <span className="ml-1 rounded-full bg-card-hover px-2 py-0.5 text-xs text-fg-subtle">
-                    {lesson.common_mistakes.length}
-                  </span>
-                  <ChevronDown
-                    size={18}
-                    className={cn("ml-auto text-fg-subtle transition-transform", showMistakes && "rotate-180")}
-                  />
-                </button>
-                <AnimatePresence initial={false}>
-                  {showMistakes && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      <ul className="space-y-2.5 border-t border-border-soft px-5 py-4">
-                        {lesson.common_mistakes.map((m, i) => (
-                          <li key={i} className="flex gap-2.5 text-sm text-fg-muted">
-                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                            <TheoryRenderer html={m} className="text-sm leading-relaxed" />
-                          </li>
-                        ))}
-                      </ul>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+              <LessonMistakes key={lessonKey} mistakes={lesson.common_mistakes} />
             )}
 
-            {/* Adaptive explainer (zero-token mentor) */}
-            <AdaptiveExplainer courseId={courseId} lessonId={lid} lang={lang} />
 
             {/* Closure: recall in your own words (Galperin / Badmaev) */}
-            <div className="mt-8 rounded-2xl border border-border bg-card-hover/40 p-5">
-              <label className="text-sm font-semibold text-fg">
-                💬 Закрепи: объясни тему своими словами
-              </label>
-              <p className="mt-0.5 text-xs text-fg-subtle">
-                Если получилось сформулировать — значит, ты правда понял. Это для тебя, никто не проверяет.
-              </p>
-              <textarea
-                value={ownWords}
-                onChange={(e) => setOwnWords(e.target.value)}
-                rows={2}
-                placeholder="Например: переменная — это коробка с именем, в которую кладёшь значение…"
-                className="mt-3 w-full resize-none rounded-xl border border-border bg-bg-soft px-3 py-2 text-sm text-fg outline-none focus:border-primary"
+            <OwnWords key={lessonKey} lang={lang} />
+
+            <nav aria-label="Соседние темы" className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <NeighbourLink
+                direction="prev"
+                to={lesson.nav.prev_id ? `/courses/${courseId}/lessons/${lesson.nav.prev_id}` : null}
+                title={lesson.nav.prev_id ? titleById.get(lesson.nav.prev_id) : undefined}
               />
-              {ownWords.trim().length > 12 && (
-                <p className="mt-2 text-xs font-medium text-success">👏 Отлично — ты только что закрепил тему.</p>
-              )}
-            </div>
+              <NeighbourLink
+                direction="next"
+                to={lesson.nav.next_id ? `/courses/${courseId}/lessons/${lesson.nav.next_id}` : null}
+                title={lesson.nav.next_id ? titleById.get(lesson.nav.next_id) : undefined}
+              />
+            </nav>
 
-            {/* Next-step card */}
-            <div className="mt-4 rounded-2xl border border-border bg-card p-5">
-              <AnimatePresence>
-                {readFlash && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="mb-4 flex items-center gap-2 rounded-xl border border-success/30 bg-success/10 px-4 py-2.5 text-sm font-semibold text-success"
-                  >
-                    <Check size={16} /> {readFlash}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <Button onClick={handleRead} disabled={readMut.isPending}>
-                  <CheckCircle2 size={17} />
-                  {lesson.status === "done" ? "Прочитано" : "Понятно, отметить"}
-                </Button>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    disabled={!lesson.nav.prev_id}
-                    onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.nav.prev_id}`)}
-                  >
-                    <ArrowLeft size={16} /> Назад
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    disabled={!lesson.nav.next_id}
-                    onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.nav.next_id}`)}
-                  >
-                    Следующая тема <ArrowRight size={16} />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Related — shown inline on mobile/tablet (sidebar is desktop-only) */}
             {related && related.items.length > 0 && (
-              <div className="mt-8 lg:hidden">
-                <div className="mb-3 text-sm font-semibold text-fg">Похожие темы</div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <section className="mt-12 xl:hidden" aria-labelledby="related-title">
+                <h2 id="related-title" className="text-body font-semibold text-fg">
+                  Похожие темы
+                </h2>
+                <GroupedList className="mt-3">
                   {related.items.slice(0, 4).map((r) => (
-                    <Link
+                    <GroupedRow
                       key={`${r.course_id}-${r.lesson_id}`}
                       to={`/courses/${r.course_id}/lessons/${r.lesson_id}`}
-                      className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-fg-muted hover:bg-card-hover hover:text-fg"
+                      trailing={<ChevronRight size={18} aria-hidden="true" />}
                     >
-                      <span className="mr-1">{r.course_emoji}</span>
-                      {r.title}
-                    </Link>
+                      <span className="block">{r.title}</span>
+                      <span className="mt-0.5 block text-caption text-fg-muted">{r.course_title}</span>
+                    </GroupedRow>
                   ))}
-                </div>
-              </div>
+                </GroupedList>
+              </section>
             )}
           </article>
 
-          {/* ───── Right ───── */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-20 space-y-5">
-              {course?.progress && (
-                <div className="rounded-2xl border border-border bg-card p-5">
-                  <div className="mb-2 text-sm font-semibold text-fg">Прогресс курса</div>
-                  <ProgressBar value={course.progress.percent} color={course.accent} />
-                  <div className="mt-2 text-xs text-fg-muted">
-                    {course.progress.done} / {course.progress.total} тем · {course.progress.percent}%
-                  </div>
-                </div>
-              )}
-
+          <aside className="hidden xl:block" aria-label="Похожие темы">
+            <div className="sticky top-[76px] space-y-10">
               {related && related.items.length > 0 && (
-                <div className="rounded-2xl border border-border bg-card p-5">
-                  <div className="mb-3 text-sm font-semibold text-fg">Похожие темы</div>
-                  <div className="space-y-1">
+                <div>
+                  <p className="text-caption font-semibold text-fg">Похожие темы</p>
+                  <ul className="mt-2">
                     {related.items.map((r) => (
-                      <Link
-                        key={`${r.course_id}-${r.lesson_id}`}
-                        to={`/courses/${r.course_id}/lessons/${r.lesson_id}`}
-                        className="block rounded-lg px-2 py-2 text-sm text-fg-muted transition-colors hover:bg-card-hover hover:text-fg"
-                      >
-                        <span className="mr-1">{r.course_emoji}</span>
-                        {r.title}
-                      </Link>
+                      <li key={`${r.course_id}-${r.lesson_id}`}>
+                        <Link
+                          to={`/courses/${r.course_id}/lessons/${r.lesson_id}`}
+                          className="block py-2 text-caption text-fg-muted transition-colors duration-150 ease-out hover:text-fg"
+                        >
+                          {r.title}
+                        </Link>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
             </div>
           </aside>
         </div>
-      </div>
+      </Container>
+
+      {course && (
+        <Sheet open={tocOpen} onClose={() => setTocOpen(false)} title="Содержание">
+          <LessonToc course={course} currentId={lid} onNavigate={() => setTocOpen(false)} />
+        </Sheet>
+      )}
     </PageTransition>
   );
 }
 
-/* ───────────────────────── helpers ───────────────────────── */
-
-function Section({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: typeof BookOpen;
-  label: string;
-  children: React.ReactNode;
-}) {
+function LessonSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-8">
-      <div className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-fg-subtle">
-        <Icon size={14} /> {label}
-      </div>
+    <section className="mt-12">
+      <h2 className="mb-4 text-title3 font-semibold text-fg">{title}</h2>
       {children}
     </section>
   );
 }
 
-function LessonSidebar({ course, currentId }: { course: CourseDetail; currentId: number }) {
-  // Only the stage with the current lesson is open by default → no wall of text.
-  const currentStageId = useMemo(
-    () => course.stages.find((s) => s.lessons.some((l) => l.id === currentId))?.id ?? course.stages[0]?.id,
-    [course, currentId],
+function NeighbourLink({
+  direction,
+  to,
+  title,
+}: {
+  direction: "prev" | "next";
+  to: string | null;
+  title?: string;
+}) {
+  const next = direction === "next";
+  const label = next ? "Далее" : "Назад";
+  const fallback = to ? (next ? "Следующая тема" : "Предыдущая тема") : next ? "Это последняя тема" : "Это первая тема";
+  const cls = cn("flex min-h-[72px] min-w-0 items-center gap-3 rounded-xl bg-surface px-4 py-3", next && "sm:col-start-2");
+
+  const inner = (
+    <>
+      {!next && <ChevronLeft size={20} className="shrink-0 text-fg-muted" aria-hidden="true" />}
+      <span className={cn("min-w-0 flex-1", next && "text-right")}>
+        <span className="block text-caption text-fg-muted">{label}</span>
+        <span className="mt-0.5 line-clamp-2 block text-body text-fg">{title ?? fallback}</span>
+      </span>
+      {next && <ChevronRight size={20} className="shrink-0 text-fg-muted" aria-hidden="true" />}
+    </>
   );
-  const [openStages, setOpenStages] = useState<Set<number>>(
-    () => new Set(currentStageId !== undefined ? [currentStageId] : []),
-  );
 
-  useEffect(() => {
-    if (currentStageId !== undefined) {
-      setOpenStages((prev) => new Set(prev).add(currentStageId));
-    }
-  }, [currentStageId]);
-
-  const toggle = (id: number) =>
-    setOpenStages((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-
-  return (
-    <aside className="hidden lg:block">
-      <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-1">
-        {course.stages.map((stage) => {
-          const open = openStages.has(stage.id);
-          return (
-            <div key={stage.id} className="mb-1">
-              <button
-                onClick={() => toggle(stage.id)}
-                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-fg-subtle hover:bg-card-hover"
-              >
-                <ChevronRight
-                  size={13}
-                  className={cn("shrink-0 transition-transform", open && "rotate-90")}
-                />
-                <span>{stage.emoji}</span>
-                <span className="line-clamp-1 flex-1">{stage.title}</span>
-                <span className="font-normal normal-case text-fg-subtle">
-                  {stage.done}/{stage.total}
-                </span>
-              </button>
-
-              <AnimatePresence initial={false}>
-                {open && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="ml-2 space-y-0.5 border-l border-border-soft pl-2">
-                      {stage.lessons.map((l) => {
-                        const active = l.id === currentId;
-                        const Icon =
-                          l.status === "done" ? CheckCircle2 : l.status === "current" ? PlayCircle : Circle;
-                        return (
-                          <Link
-                            key={l.id}
-                            to={`/courses/${course.id}/lessons/${l.id}`}
-                            className={cn(
-                              "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors",
-                              active
-                                ? "bg-primary-soft font-semibold text-primary"
-                                : "text-fg-muted hover:bg-card-hover hover:text-fg",
-                            )}
-                          >
-                            <Icon
-                              size={14}
-                              className={cn(
-                                "shrink-0",
-                                l.status === "done"
-                                  ? "text-success"
-                                  : active
-                                    ? "text-primary"
-                                    : "text-fg-subtle",
-                              )}
-                            />
-                            <span className="line-clamp-1">{l.title}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
+  if (!to) {
+    return (
+      // Informational, not a disabled control: full opacity keeps the text at 4.5:1.
+      <div aria-disabled="true" className={cn(cls, "text-fg-muted")}>
+        {inner}
       </div>
-    </aside>
+    );
+  }
+  return (
+    <Link to={to} className={cn(cls, "transition-colors duration-150 ease-out hover:bg-surface-hover")}>
+      {inner}
+    </Link>
   );
 }

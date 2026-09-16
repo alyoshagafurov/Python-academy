@@ -1,23 +1,41 @@
 import { Moon, Sun } from "lucide-react";
-import { motion } from "framer-motion";
 import { useTheme } from "@/hooks/useTheme";
+import { cn } from "@/lib/utils";
 
-export function ThemeToggle() {
+/** Icon button in the navbar; `withLabel` renders a text row for the footer and mobile menu. */
+export function ThemeToggle({ withLabel = false, className }: { withLabel?: boolean; className?: string }) {
   const { theme, toggle } = useTheme();
+  const isDark = theme === "dark";
+  const Icon = isDark ? Sun : Moon;
+  const action = isDark ? "Светлая тема" : "Тёмная тема";
+
+  if (withLabel) {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        className={cn(
+          "inline-flex min-h-11 items-center gap-2 rounded-xl text-caption text-fg-muted transition-colors duration-150 ease-out hover:text-fg",
+          className,
+        )}
+      >
+        <Icon size={16} aria-hidden="true" />
+        {action}
+      </button>
+    );
+  }
+
   return (
     <button
+      type="button"
       onClick={toggle}
-      aria-label="Сменить тему"
-      className="relative grid h-10 w-10 place-items-center rounded-xl border border-border text-fg-muted transition-colors hover:bg-card-hover hover:text-fg"
+      aria-label={isDark ? "Включить светлую тему" : "Включить тёмную тему"}
+      className={cn(
+        "grid h-11 w-11 place-items-center rounded-xl text-fg-muted transition-colors duration-150 ease-out hover:bg-surface hover:text-fg",
+        className,
+      )}
     >
-      <motion.span
-        key={theme}
-        initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
-        animate={{ rotate: 0, opacity: 1, scale: 1 }}
-        transition={{ duration: 0.25 }}
-      >
-        {theme === "dark" ? <Moon size={18} /> : <Sun size={18} />}
-      </motion.span>
+      <Icon size={18} aria-hidden="true" />
     </button>
   );
 }

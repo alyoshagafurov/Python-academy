@@ -1,1 +1,1 @@
-"""Python Knowledge Hub — web API package."""
+"""Python Academy — web API package."""

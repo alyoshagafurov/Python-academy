@@ -3,6 +3,7 @@
   "language": "python",
   "track": "student",
   "title": "Python Student",
+  "description": "Python для продакшена: async, базы данных, API, тесты и деплой",
   "emoji": "🟣",
   "stages": [
     "stage_1",

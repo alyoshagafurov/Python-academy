@@ -1,36 +1,73 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Container } from "@/components/ui/Container";
+
+// 44px tall at every width: tablets are touch devices too.
+const linkClass = "flex min-h-11 items-center transition-colors duration-150 ease-out hover:text-fg";
 
 export function Footer() {
+  const { data } = useQuery({ queryKey: ["courses"], queryFn: api.courses });
+  const courses = data?.courses.slice(0, 6) ?? [];
+
   return (
-    <footer className="mt-20 border-t border-border">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="flex items-center gap-2 font-bold">
-            <span className="text-xl">🐍</span> Python Knowledge Hub
+    <footer className="border-t border-line bg-surface">
+      <Container size="wide" className="py-12 text-caption text-fg-muted">
+        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr]">
+          <div className="sm:col-span-2 md:col-span-1">
+            <p className="text-body font-semibold text-fg">Python Academy</p>
+            <p className="mt-2 max-w-[40ch]">
+              Python и математика мышления: короткая теория, примеры из жизни и проверка после каждой темы.
+            </p>
           </div>
-          <p className="mt-2 max-w-sm text-sm text-fg-muted">
-            Справочник по Python, backend и вебу. Теория с ассоциациями, примеры
-            кода и понятный прогресс — синхронизировано с Telegram-ботом.
-          </p>
+
+          <FooterColumn title="Курсы">
+            {courses.map((c) => (
+              <li key={c.id}>
+                <Link to={`/courses/${c.id}`} className={linkClass}>
+                  {c.title}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link to="/courses" className={linkClass}>
+                Все курсы
+              </Link>
+            </li>
+          </FooterColumn>
+
+          <FooterColumn title="Платформа">
+            <li>
+              <Link to="/search" className={linkClass}>
+                Поиск
+              </Link>
+            </li>
+            <li>
+              <Link to="/pro" className={linkClass}>
+                PRO
+              </Link>
+            </li>
+          </FooterColumn>
         </div>
-        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-          <Link to="/courses" className="text-fg-muted hover:text-fg">Курсы</Link>
-          <Link to="/search" className="text-fg-muted hover:text-fg">Поиск</Link>
-          <Link to="/dashboard" className="text-fg-muted hover:text-fg">Кабинет</Link>
-          <Link to="/pro" className="text-fg-muted hover:text-fg">PRO</Link>
-          <a
-            href="https://t.me/python_academy_tj_bot"
-            target="_blank"
-            rel="noreferrer"
-            className="text-fg-muted hover:text-fg"
-          >
-            Бот в Telegram
-          </a>
+
+        <div className="mt-10 flex flex-col-reverse gap-2 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} Python Academy</p>
+          <ThemeToggle withLabel />
         </div>
-      </div>
-      <div className="border-t border-border-soft py-4 text-center text-xs text-fg-subtle">
-        © {new Date().getFullYear()} Python Knowledge Hub · Сделано для тех, кто учит Python
-      </div>
+      </Container>
     </footer>
+  );
+}
+
+function FooterColumn({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <nav aria-label={title}>
+      <h2 className="text-caption font-semibold text-fg">{title}</h2>
+      <ul className="mt-3">
+        {children}
+      </ul>
+    </nav>
   );
 }

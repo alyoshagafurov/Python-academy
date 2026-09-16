@@ -35,3 +35,8 @@ backend/data/
 # Books (copyrighted source material — never commit)
 книги/
 books/
+
+# Impeccable local build state
+.impeccable/build/
+# Design critique snapshots: local run artefacts, regenerated on demand
+.impeccable/critique/
