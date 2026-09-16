@@ -5,7 +5,8 @@ import { api } from "@/lib/api";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Container } from "@/components/ui/Container";
 
-const linkClass = "flex min-h-11 items-center transition-colors duration-150 ease-out hover:text-fg sm:min-h-8";
+// 44px tall at every width: tablets are touch devices too.
+const linkClass = "flex min-h-11 items-center transition-colors duration-150 ease-out hover:text-fg";
 
 export function Footer() {
   const { data } = useQuery({ queryKey: ["courses"], queryFn: api.courses });
