@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, Check, ChevronLeft, ChevronRight, Clock, ListOrdered } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoginModal } from "@/hooks/useLoginModal";
 import { langForCourse } from "@/lib/codeLang";
@@ -49,7 +49,7 @@ export function LessonPage() {
   const [tocOpen, setTocOpen] = useState(false);
   const viewedRef = useRef("");
 
-  const { data: lesson, isLoading, isError, refetch } = useQuery({
+  const { data: lesson, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["lesson", courseId, lid],
     queryFn: () => api.lesson(courseId, lid),
   });
@@ -134,12 +134,18 @@ export function LessonPage() {
   const lang = useMemo(() => langForCourse(courseId), [courseId]);
 
   if (isError) {
+    // A missing lesson is not a server problem: say so, and don't offer a retry that cannot help.
+    const missing = error instanceof ApiError && error.status === 404;
     return (
       <Container size="text" className="py-20">
         <ErrorState
-          title="Не удалось открыть урок"
-          text="Урок не найден или сервер не отвечает. Попробуй ещё раз или вернись к курсу."
-          onRetry={() => refetch()}
+          title={missing ? "Такой темы нет" : "Не удалось открыть урок"}
+          text={
+            missing
+              ? "Возможно, в ссылке опечатка. Вернись к курсу и выбери тему из списка."
+              : "Сервер не отвечает. Проверь подключение и попробуй ещё раз."
+          }
+          onRetry={missing ? undefined : () => refetch()}
         />
       </Container>
     );

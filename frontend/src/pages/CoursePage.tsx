@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { LessonBrief, StageNode } from "@/lib/types";
 import { DURATION, EASE_OUT, useDuration } from "@/lib/motion";
 import { cn, pluralize } from "@/lib/utils";
@@ -17,7 +17,7 @@ import { PageTransition } from "@/components/PageTransition";
 
 export function CoursePage() {
   const { courseId = "" } = useParams();
-  const { data: course, isLoading, isError, refetch } = useQuery({
+  const { data: course, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["course", courseId],
     queryFn: () => api.course(courseId),
   });
@@ -30,12 +30,18 @@ export function CoursePage() {
   }, [course]);
 
   if (isError) {
+    // A missing course is not a server problem: say so, and don't offer a retry that cannot help.
+    const missing = error instanceof ApiError && error.status === 404;
     return (
       <Container size="text" className="py-20">
         <ErrorState
-          title="Не удалось открыть курс"
-          text="Курс не найден или сервер не отвечает. Попробуй ещё раз или вернись к списку курсов."
-          onRetry={() => refetch()}
+          title={missing ? "Такого курса нет" : "Не удалось открыть курс"}
+          text={
+            missing
+              ? "Возможно, в ссылке опечатка. Открой список курсов и выбери нужный."
+              : "Сервер не отвечает. Проверь подключение и попробуй ещё раз."
+          }
+          onRetry={missing ? undefined : () => refetch()}
         />
       </Container>
     );
