@@ -45,24 +45,9 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/dashboard" className={linkClass}>
-                Кабинет
-              </Link>
-            </li>
-            <li>
               <Link to="/pro" className={linkClass}>
                 PRO
               </Link>
-            </li>
-            <li>
-              <a
-                href="https://t.me/python_academy_tj_bot"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClass}
-              >
-                Бот в Telegram
-              </a>
             </li>
           </FooterColumn>
         </div>

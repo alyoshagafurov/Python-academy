@@ -150,10 +150,6 @@ components:
     rounded: "{rounded.surface}"
     padding: "32px"
     width: "400px"
-  progress-bar:
-    backgroundColor: "{colors.line}"
-    rounded: "{rounded.pill}"
-    height: "2px"
 ---
 
 # Design System: Python Academy
@@ -166,11 +162,11 @@ The site presents Python the way a store window presents a single object: one re
 
 Density is low on the home page (80px section rhythm on mobile, 128px from md, one showcase per viewport) and moderate on reading and working pages, where content sits in inset grouped lists like iOS Settings. Type is the system font (SF on Apple platforms) with self-hosted Onest as the cross-platform fallback. Headings are tight and bold, and body text is set generously at 17px.
 
-Motion is minimal and quiet. Only the hero, disclosures and overlays animate; home sections are visible from the first frame (no scroll reveals). Routes change instantly, progress never animates, and reduced motion makes every appearance instant.
+Motion is minimal and quiet. Only the hero, disclosures and overlays animate; home sections are visible from the first frame (no scroll reveals). Routes change instantly, and reduced motion makes every appearance instant.
 
 **Key Characteristics:**
 - Light-first, tonal layering (white bg, #F5F5F7 surface, #EDEDF0 hover), hairline #D2D2D7 dividers.
-- One accent blue, reserved for action, links, active state, focus and progress.
+- One accent blue, reserved for action, links, active state and focus.
 - Two radii for surfaces: 12px for rows, fields and code, 24px for large surfaces. A pill shape only on a screen's main CTA.
 - Inset grouped lists as the default container for sets of items.
 - Code set in the showcase style: surface panel, line numbers, Shiki css-variables colours, no ligatures.
@@ -181,7 +177,7 @@ Motion is minimal and quiet. Only the hero, disclosures and overlays animate; ho
 Grey neutrals and ink carry the page, with one blue that means "you can act here".
 
 ### Primary
-- **Action Blue** (accent): fills primary buttons and the main CTA, and is also used for the focus ring, progress fill, active-lesson dots, text caret and selection tint (22% mix). Hover goes darker (accent-hover), never lighter, so white text stays above 4.5:1. In dark mode it is a brighter blue with black text on top.
+- **Action Blue** (accent): fills primary buttons and the main CTA, and is also used for the focus ring, text caret and selection tint (22% mix). Hover goes darker (accent-hover), never lighter, so white text stays above 4.5:1. In dark mode it is a brighter blue with black text on top.
 - **Link Blue** (link): a deeper blue used only for text links and plain buttons, because accent blue drops to 4.3:1 on the grey surface. In dark mode it is the same as accent.
 
 ### Neutral
@@ -190,13 +186,13 @@ Grey neutrals and ink carry the page, with one blue that means "you can act here
 - **Pressed Grey** (surface-hover): the hover and active fill for rows and cards, and the quiet band that highlights the showcase line that runs.
 - **Ink** (fg): headings, body text and the active nav item.
 - **Graphite** (fg-muted): secondary text, captions, line numbers, meta rows and inactive nav.
-- **Hairline** (line): 1px dividers, input borders, the progress track and the scrollbar thumb. It is the global default border colour.
+- **Hairline** (line): 1px dividers, input borders and the scrollbar thumb. It is the global default border colour.
 
 ### Status
 - **Success** (success) and **Danger** (danger): only for correct/incorrect feedback and the copied confirmation. They are never decorative.
 
 ### Named Rules
-**The One Blue Rule.** Blue appears only on something the user can press, follow, focus on, or read as progress. A blue heading, icon or background band is a defect.
+**The One Blue Rule.** Blue appears only on something the user can press, follow or focus on. A blue heading, icon or background band is a defect.
 
 **The Token-Only Rule.** Colours are defined only in `frontend/src/index.css` (`:root` light, `.dark` dark, mapped in `@theme inline`). Components and pages use token names only and never contain hex values.
 
@@ -211,8 +207,8 @@ Grey neutrals and ink carry the page, with one blue that means "you can act here
 
 ### Hierarchy
 - **Display** (700, clamp(40px, 6vw, 72px), 1.08, -0.025em): the home hero H1 only, capped at 16ch below lg.
-- **Title 1 / Headline** (700, 40px, 1.08): page H1s on catalog, course, dashboard, PRO and 404, which use -0.025em tracking. At 600 weight it also sets home section H2s from md and large stat numbers.
-- **Title 2** (600, 28px, 1.15, -0.015em): home section H2s on mobile, dashboard H1 on mobile and stat values.
+- **Title 1 / Headline** (700, 40px, 1.08): page H1s on catalog, course, search, PRO and 404, which use -0.025em tracking. At 600 weight it also sets home section H2s from md.
+- **Title 2** (600, 28px, 1.15, -0.015em): home section H2s on mobile and the lesson H1 on mobile.
 - **Title 3** (600, 21px, 1.35): card titles, lesson step titles, the mobile menu rows and the showcase analogy line (400). It also sets the hero subhead from md.
 - **Body** (400, 17px, 1.55): all running text, buttons and list rows. Theory prose uses line height 1.65 and a 68ch max width.
 - **Caption / Label** (400, 14px, 1.45): meta rows, trailing values in lists, desktop nav links and step numbers.
@@ -221,7 +217,7 @@ Grey neutrals and ink carry the page, with one blue that means "you can act here
 ### Named Rules
 **The Straight Operators Rule.** Code never uses ligatures (`liga` and `calt` are off on pre, code, kbd and samp). Beginners retype what they see, so `>=` must look like two characters.
 
-**The Tabular Count Rule.** Counters, progress percentages, step numbers and line numbers use tabular numerals.
+**The Tabular Count Rule.** Counters, step numbers and line numbers use tabular numerals.
 
 **The Balanced Heading Rule.** h1 to h3 use `text-wrap: balance`, and line length is capped with ch widths (36 to 60ch for supporting text).
 
@@ -245,9 +241,9 @@ The system is flat and uses tonal layering: depth comes from bg, surface and sur
 
 ## Shapes
 
-There are two surface radii. **12px** is for anything row-sized: grouped lists, buttons, input fields, icon buttons, code blocks, menus and segmented tracks. **24px** is for large surfaces: the showcase, course cards and their skeletons, dialogs and the sheet's top edge. **8px** is used only inside those surfaces (segmented options, the highlight band on the running showcase line, the copy button). **Fully rounded controls** appear only on the single main CTA of a screen. Elsewhere, fully rounded shapes are indicators: avatar initials, path dots, lesson dots, the 2px progress line and the spinner. There are no images or decorative shapes. Icons are Lucide line icons at 16 to 22px.
+There are two surface radii. **12px** is for anything row-sized: grouped lists, buttons, input fields, icon buttons, code blocks, menus and segmented tracks. **24px** is for large surfaces: the showcase, course cards and their skeletons, dialogs and the sheet's top edge. **8px** is used only inside those surfaces (segmented options, the highlight band on the running showcase line, the copy button). **Fully rounded controls** appear only on the single main CTA of a screen. Elsewhere, fully rounded shapes are indicators: path dots and the spinner. There are no images or decorative shapes. Icons are Lucide line icons at 16 to 22px.
 
-**The Pill Is Singular Rule.** Only one pill button per screen, and it is the main CTA («Начать учиться», «Войти через Telegram»). Every other button uses the 12px radius.
+**The Pill Is Singular Rule.** Only one pill button per screen, and it is the main CTA («Начать учиться»). Every other button uses the 12px radius.
 
 ## Components
 
@@ -262,7 +258,7 @@ Confident and quiet.
 ### Inset Grouped List (signature)
 - **GroupedList:** one surface panel with a 12px radius and clipped overflow.
 - **GroupedRow:** at least 52px tall with 12px/16px padding and a 12px gap, plus optional leading and trailing slots (trailing text is caption, fg-muted). Rows are separated by hairline top borders, and the first row has none. Interactive rows (link or button) fill with surface-hover on hover and press, and their focus outline is drawn inset.
-- Used for lesson lists, search results, dashboard lists, login options and predict checks.
+- Used for lesson lists, search results, related topics and predict checks.
 
 ### Cards / Containers
 - **Course card:** 24px radius, surface fill, 24px padding (32px from md), no border and no shadow. Title in title3, body in fg-muted, meta caption pinned to the bottom and joined with " · ". A 2px progress line appears once the course is started. Hover fills with surface-hover.

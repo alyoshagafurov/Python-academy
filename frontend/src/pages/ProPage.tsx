@@ -19,7 +19,7 @@ export function ProPage() {
         <h1 className="text-title1 font-bold tracking-[-0.025em] text-fg">PRO</h1>
         <p className="mt-4 text-title3 text-fg">Сейчас всё бесплатно.</p>
         <p className="mt-3 max-w-[56ch] text-body text-fg-muted">
-          Курсы, «Объяснить проще», наставник, прогресс и избранное открыты для всех. PRO появится позже
+          Курсы, «Объяснить проще» и наставник открыты для всех и без регистрации. PRO появится позже
           и добавит практику и проекты для портфолио.
         </p>
 

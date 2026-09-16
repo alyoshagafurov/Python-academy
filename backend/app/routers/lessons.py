@@ -1,11 +1,10 @@
-"""Single lesson: full body, 'explain simpler', related, mark-as-read."""
+"""Single lesson: full body, 'explain simpler', related topics."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from app import bot_bridge as bot
-from app import content, userdata
-from app.auth import optional_user, require_user
+from app import content
 
 router = APIRouter(prefix="/api/courses/{course_id}/lessons", tags=["lessons"])
 
@@ -33,15 +32,9 @@ def _nav(course, lesson_id: int) -> dict:
 
 
 @router.get("/{lesson_id}")
-async def get_lesson(
-    course_id: str, lesson_id: int, user_id: int | None = Depends(optional_user)
-) -> dict:
+async def get_lesson(course_id: str, lesson_id: int) -> dict:
     course, lesson = _require_lesson(course_id, lesson_id)
-    pointer = await userdata.course_pointer(user_id, course_id)
-    bm = await userdata.bookmarked_ids(user_id, course_id)
-    return content.lesson_full(
-        course_id, lesson, pointer, lesson_id in bm, _nav(course, lesson_id)
-    )
+    return content.lesson_full(course_id, lesson, _nav(course, lesson_id))
 
 
 @router.get("/{lesson_id}/simple")
@@ -66,27 +59,4 @@ async def get_related(course_id: str, lesson_id: int) -> dict:
             }
             for rel in items
         ]
-    }
-
-
-@router.post("/{lesson_id}/read")
-async def mark_read(
-    course_id: str, lesson_id: int, user_id: int = Depends(require_user)
-) -> dict:
-    """Theory-mode completion — mirrors the bot: advances the pointer and grants
-    XP only on the first read (re-reading never farms XP)."""
-    course, lesson = _require_lesson(course_id, lesson_id)
-    before = await userdata.course_pointer(user_id, course_id)
-    result = await bot.lesson_service.mark_read(user_id, lesson_id, course_id)
-    pointer = await userdata.course_pointer(user_id, course_id)
-    done, total, percent = bot.course_service.course_progress(pointer or 1, course)
-    return {
-        "awarded": result.awarded,
-        "xp_gain": result.xp_gain,
-        "already_done": result.already_done,
-        # Progress is linear: a lesson past the current one counts only once the
-        # learner reaches it in order, so the site must not call it «done».
-        "ahead": bool(not result.awarded and before is not None and lesson_id > before),
-        "progress": {"done": done, "total": total, "percent": percent},
-        "current_lesson": pointer,
     }

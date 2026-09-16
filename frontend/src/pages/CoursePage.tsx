@@ -2,7 +2,7 @@ import { useId, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { m } from "framer-motion";
-import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { LessonBrief, StageNode } from "@/lib/types";
 import { DURATION, EASE_OUT, useDuration } from "@/lib/motion";
@@ -10,7 +10,6 @@ import { cn, pluralize } from "@/lib/utils";
 import { ButtonLink } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { GroupedList, GroupedRow } from "@/components/ui/GroupedList";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/State";
 import { PageTransition } from "@/components/PageTransition";
@@ -22,12 +21,7 @@ export function CoursePage() {
     queryFn: () => api.course(courseId),
   });
 
-  const continueLesson = useMemo(() => {
-    if (!course) return null;
-    for (const s of course.stages)
-      for (const l of s.lessons) if (l.status === "current") return l;
-    return course.stages[0]?.lessons[0] ?? null;
-  }, [course]);
+  const firstLesson = useMemo(() => course?.stages[0]?.lessons[0] ?? null, [course]);
 
   if (isError) {
     // A missing course is not a server problem: say so, and don't offer a retry that cannot help.
@@ -62,8 +56,6 @@ export function CoursePage() {
     );
   }
 
-  const pct = course.progress?.percent ?? 0;
-  const started = (course.progress?.done ?? 0) > 0;
   const meta = [
     course.level,
     `${course.stages_count} ${pluralize(course.stages_count, "трек", "трека", "треков")}`,
@@ -88,23 +80,14 @@ export function CoursePage() {
         )}
         <p className="mt-4 text-caption text-fg-muted">{meta.join(" · ")}</p>
 
-        {started && course.progress && (
-          <div className="mt-8 max-w-sm">
-            <p className="text-caption text-fg-muted tabular">
-              Пройдено {course.progress.done} из {course.progress.total} · {pct}%
-            </p>
-            <ProgressBar value={pct} label={`Курс пройден на ${pct}%`} className="mt-2" />
-          </div>
-        )}
-
-        {continueLesson && (
+        {firstLesson && (
           <ButtonLink
-            to={`/courses/${course.id}/lessons/${continueLesson.id}`}
+            to={`/courses/${course.id}/lessons/${firstLesson.id}`}
             size="lg"
             pill
             className="mt-8"
           >
-            {started ? "Продолжить" : "Начать"}
+            Начать
           </ButtonLink>
         )}
 
@@ -115,7 +98,7 @@ export function CoursePage() {
               key={stage.id}
               stage={stage}
               courseId={course.id}
-              defaultOpen={i === 0 || stage.lessons.some((l) => l.status === "current")}
+              defaultOpen={i === 0}
             />
           ))}
         </div>
@@ -155,7 +138,7 @@ function StageGroup({
           )}
         </span>
         <span className="shrink-0 text-caption text-fg-muted tabular">
-          {stage.done} из {stage.total}
+          {stage.total} {pluralize(stage.total, "тема", "темы", "тем")}
         </span>
         <ChevronDown
           size={20}
@@ -183,30 +166,12 @@ function StageGroup({
 }
 
 function LessonRow({ lesson, courseId }: { lesson: LessonBrief; courseId: string }) {
-  const done = lesson.status === "done";
-  const current = lesson.status === "current";
   return (
     <GroupedRow
       to={`/courses/${courseId}/lessons/${lesson.id}`}
-      leading={
-        <span className="grid w-5 place-items-center">
-          {done ? (
-            <Check size={18} strokeWidth={2.5} className="text-accent" aria-hidden="true" />
-          ) : current ? (
-            <span className="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
-          ) : null}
-        </span>
-      }
-      trailing={
-        <>
-          {lesson.bookmarked && <Bookmark size={16} className="fill-current" role="img" aria-label="В избранном" />}
-          <ChevronRight size={18} aria-hidden="true" />
-        </>
-      }
+      trailing={<ChevronRight size={18} aria-hidden="true" />}
     >
       <span className="line-clamp-2">{lesson.title}</span>
-      {done && <span className="sr-only">, пройдено</span>}
-      {current && <span className="sr-only">, текущая тема</span>}
     </GroupedRow>
   );
 }

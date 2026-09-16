@@ -1,9 +1,9 @@
 """Python Academy — FastAPI application.
 
-A thin read/write API over the Telegram bot's existing SQLite database and JSON
-course content. It never starts the bot; it only imports the bot's modules
-(see app.bot_bridge) and exposes them over HTTP for the web frontend. In
-production it also serves the built SPA with per-page meta tags.
+A read-only API over the course content that ships with the repository (see
+app.bot_bridge). The site has no accounts: nothing is stored per reader, and the
+only database it writes is the mentor's own telemetry. In production it also
+serves the built SPA with per-page meta tags.
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ if _problems:
 
 from app import bot_bridge as bot  # noqa: E402
 from app import mentor_store, security, seo  # noqa: E402
-from app.routers import auth, courses, lessons, me, mentor, meta, search  # noqa: E402
+from app.routers import courses, lessons, mentor, meta, search  # noqa: E402
 
 _FRONTEND_ENV = os.getenv("FRONTEND_DIR", "").strip()
 _FRONTEND = Path(_FRONTEND_ENV).resolve() if _FRONTEND_ENV else None
@@ -49,10 +49,7 @@ _CSP = security.build_csp(security.inline_script_hashes(_INDEX_TEMPLATE))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure the shared schema exists (idempotent, additive — never recreates).
-    await bot.init_db()
-    await mentor_store.init()  # isolated mentor telemetry DB (not the bot's)
-    logger.info("БД бота: %s", bot.DB_PATH)
+    await mentor_store.init()  # the site's only database: mentor telemetry
     logger.info("БД наставника: %s", settings.mentor_db_path)
     logger.info("Курсов загружено: %d", len(bot.all_courses()))
     yield
@@ -61,7 +58,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Python Academy API",
     version="1.0.0",
-    description="Веб-API поверх БД и контента Telegram-бота Python Academy.",
+    description="Веб-API поверх контента курсов Python Academy. Без аккаунтов.",
     lifespan=lifespan,
 )
 
@@ -79,16 +76,13 @@ app.add_middleware(security.BodySizeLimitMiddleware, max_bytes=security.API_BODY
 # Added last, so it wraps everything and every response carries the headers.
 app.add_middleware(
     security.SecurityHeadersMiddleware,
-    headers=security.security_headers(_CSP, hsts=settings.cookie_secure),
+    headers=security.security_headers(_CSP, hsts=settings.https_only),
 )
 
 app.include_router(meta.router)
-app.include_router(auth.router)
 app.include_router(courses.router)
 app.include_router(lessons.router)
 app.include_router(search.router)
-app.include_router(me.router)
-app.include_router(me.toggle_router)
 app.include_router(mentor.router)
 
 
@@ -100,7 +94,7 @@ async def health() -> dict:
 def _site_url(request: Request) -> str:
     # Outside dev SITE_URL is required at startup, so public URLs never come from
     # the client-controlled Host header; the request is only a local-dev fallback.
-    if settings.site_url or not settings.dev_auth_enabled:
+    if settings.site_url or not settings.dev_mode:
         return settings.site_url
     return str(request.base_url).rstrip("/")
 

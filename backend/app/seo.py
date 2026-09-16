@@ -20,18 +20,16 @@ from app import content
 BRAND = "Python Academy"
 TITLE_LIMIT = 60
 DESCRIPTION_LIMIT = 155
-BOT_URL = "https://t.me/python_academy_tj_bot"
-
 HOME_TITLE = f"{BRAND} — Python и математика с нуля"
 HOME_DESCRIPTION = (
     "Бесплатные курсы Python и математики мышления: короткая теория, примеры из жизни "
-    "и проверка после каждой темы. Прогресс общий с Telegram-ботом."
+    "и проверка после каждой темы. Без регистрации."
 )
 CATALOG_DESCRIPTION = (
     "Все курсы Python Academy: Python с первой строки, веб-разработка и математика "
     "для ясных решений. Теория, примеры и проверки, бесплатно."
 )
-PRIVATE_PAGES = {"/dashboard": "Кабинет", "/search": "Поиск", "/insights": "Аналитика наставника"}
+PRIVATE_PAGES = {"/search": "Поиск"}
 
 _COURSE_RE = re.compile(r"/courses/([\w-]+)")
 _LESSON_RE = re.compile(r"/courses/([\w-]+)/lessons/(\d{1,6})")
@@ -105,7 +103,6 @@ def _organization(site_url: str) -> dict:
         "name": BRAND,
         "url": site_url,
         "description": HOME_DESCRIPTION,
-        "sameAs": [BOT_URL],
     }
 
 
@@ -193,9 +190,9 @@ def render_index(template: str, page: PageMeta, site_url: str) -> str:
     ]
     if page.json_ld:
         tags.append(f'<script type="application/ld+json">{_json_ld(page.json_ld)}</script>')
-    # crossorigin="use-credentials" matches the app's fetch(..., { credentials: "include" }).
+    # Plain crossorigin matches the app's fetch: no credentials are ever sent.
     tags += [
-        f'<link rel="preload" href="{esc(href)}" as="fetch" crossorigin="use-credentials" />'
+        f'<link rel="preload" href="{esc(href)}" as="fetch" crossorigin />'
         for href in page.preload
     ]
 
@@ -221,9 +218,7 @@ def robots_txt(site_url: str) -> str:
     return (
         "User-agent: *\n"
         "Disallow: /api/\n"
-        "Disallow: /dashboard\n"
         "Disallow: /search\n"
-        "Disallow: /insights\n"
         "Allow: /\n\n"
         f"Sitemap: {site_url}/sitemap.xml\n"
     )

@@ -1,9 +1,9 @@
 """Security headers for every response, including the Content Security Policy.
 
-Scripts come only from our own bundle, the inline theme script in index.html
-(allowed by its sha256, read from the index.html that is actually served) and
-the Telegram Login Widget. Styles allow 'unsafe-inline': Shiki and React write
-colours into style attributes, which a hash cannot cover.
+Scripts come only from our own bundle and the inline theme script in index.html
+(allowed by its sha256, read from the index.html that is actually served): the
+site embeds nothing from anyone else. Styles allow 'unsafe-inline': Shiki and
+React write colours into style attributes, which a hash cannot cover.
 """
 from __future__ import annotations
 
@@ -14,8 +14,6 @@ import re
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-TELEGRAM_WIDGET_ORIGIN = "https://telegram.org"
-TELEGRAM_OAUTH_ORIGIN = "https://oauth.telegram.org"
 API_BODY_LIMIT = 64 * 1024  # bytes
 
 _INLINE_SCRIPT_RE = re.compile(r"<script>(.*?)</script>", re.S)
@@ -32,12 +30,12 @@ def inline_script_hashes(index_html: str) -> list[str]:
 def build_csp(script_hashes: list[str]) -> str:
     directives = {
         "default-src": "'self'",
-        "script-src": " ".join(["'self'", *script_hashes, TELEGRAM_WIDGET_ORIGIN]),
+        "script-src": " ".join(["'self'", *script_hashes]),
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data:",
         "font-src": "'self'",
         "connect-src": "'self'",
-        "frame-src": TELEGRAM_OAUTH_ORIGIN,
+        "frame-src": "'none'",
         "frame-ancestors": "'none'",
         "object-src": "'none'",
         "base-uri": "'self'",
@@ -53,9 +51,9 @@ def security_headers(csp: str, hsts: bool) -> list[tuple[str, str]]:
         ("Referrer-Policy", "strict-origin-when-cross-origin"),
         ("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()"),
         ("X-Frame-Options", "DENY"),
-        # Keeps other sites out of our browsing context; popups stay allowed
-        # because the Telegram login flow may open its own window.
-        ("Cross-Origin-Opener-Policy", "same-origin-allow-popups"),
+        # Nothing opens a popup any more (the login flow is gone), so the
+        # strictest value fits: our browsing context stays entirely ours.
+        ("Cross-Origin-Opener-Policy", "same-origin"),
         ("Cross-Origin-Resource-Policy", "same-origin"),
     ]
     if hsts:

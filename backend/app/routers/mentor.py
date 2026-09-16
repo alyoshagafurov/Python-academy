@@ -1,4 +1,7 @@
-"""Mentor API — zero-token rule-based mentor + analytics + rate limiting."""
+"""Mentor API — zero-token rule-based mentor with rate limiting.
+
+The site has no accounts, so every actor is the client's anonymous id.
+"""
 from __future__ import annotations
 
 import json
@@ -10,7 +13,6 @@ from pydantic import BaseModel, field_validator
 
 from app import bot_bridge as bot
 from app import mentor, mentor_store
-from app.auth import optional_user
 from app.settings import settings
 
 router = APIRouter(prefix="/api/mentor", tags=["mentor"])
@@ -60,13 +62,8 @@ _event_window = _SlidingWindow()
 _anon_ip_window = _SlidingWindow()
 
 
-async def actor(
-    user_id: int | None = Depends(optional_user),
-    x_anon_id: str | None = Header(default=None),
-) -> str:
-    """Stable identity for telemetry/rate-limit: logged-in user or anon client id."""
-    if user_id is not None:
-        return f"user:{user_id}"
+async def actor(x_anon_id: str | None = Header(default=None)) -> str:
+    """Stable identity for telemetry and rate limits: the client's anonymous id."""
     if x_anon_id:
         return f"anon:{x_anon_id[:64]}"
     return "anon:unknown"
@@ -82,7 +79,7 @@ async def _check_rate(who: str, request: Request) -> None:
         status_code=429,
         detail="Слишком много подсказок за час — сделай паузу и попробуй сам.",
     )
-    if who.startswith("anon:") and not _anon_ip_window.allow(_client_ip(request), ANON_IP_LIMIT_PER_HOUR):
+    if not _anon_ip_window.allow(_client_ip(request), ANON_IP_LIMIT_PER_HOUR):
         raise too_many
     used = await mentor_store.recent_count(
         who, ("hint_request", "explain_open"), seconds=3600
@@ -186,14 +183,3 @@ async def explain(body: ExplainBody, request: Request, who: str = Depends(actor)
     )
     result["ai_available"] = settings.mentor_ai_enabled
     return result
-
-
-# ───────────────────────────── analytics ──────────────────────────────────
-
-@router.get("/analytics")
-async def analytics(user_id: int | None = Depends(optional_user)) -> dict:
-    """Admin-only. Everyone else gets 404, so the endpoint does not reveal itself."""
-    is_admin = user_id is not None and user_id in settings.admin_telegram_ids
-    if not (is_admin or settings.mentor_analytics_open):
-        raise HTTPException(status_code=404, detail="Not Found")
-    return await mentor_store.analytics()

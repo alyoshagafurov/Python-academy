@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bookmark, Check, ChevronLeft, ChevronRight, Clock, ListOrdered } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, ListOrdered } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
-import { useAuth } from "@/hooks/useAuth";
-import { useLoginModal } from "@/hooks/useLoginModal";
 import { langForCourse } from "@/lib/codeLang";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { GroupedList, GroupedRow } from "@/components/ui/GroupedList";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Sheet } from "@/components/ui/Sheet";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/State";
@@ -24,14 +21,6 @@ import { LessonToc } from "@/components/lesson/LessonToc";
 import { LessonMistakes } from "@/components/lesson/LessonMistakes";
 import { OwnWords } from "@/components/lesson/OwnWords";
 
-/** Result of «Понятно, отметить»; currentId is set when the lesson is ahead of the current one. */
-interface ReadNote {
-  text: string;
-  currentId?: number;
-  /** Set when the lesson was just counted and a next lesson exists. */
-  nextId?: number;
-}
-
 function readMinutes(...texts: string[]): number {
   const chars = texts.join(" ").replace(/<[^>]+>/g, "").length;
   return Math.max(1, Math.round(chars / 700));
@@ -40,12 +29,6 @@ function readMinutes(...texts: string[]): number {
 export function LessonPage() {
   const { courseId = "", lessonId = "" } = useParams();
   const lid = parseInt(lessonId, 10);
-  const qc = useQueryClient();
-  const { user } = useAuth();
-  const { open: openLogin } = useLoginModal();
-
-  const [readFlash, setReadFlash] = useState<ReadNote | null>(null);
-  const flashTimer = useRef<number | undefined>(undefined);
   const [tocOpen, setTocOpen] = useState(false);
   const viewedRef = useRef("");
 
@@ -67,7 +50,6 @@ export function LessonPage() {
   const [shownLesson, setShownLesson] = useState(lessonKey);
   if (shownLesson !== lessonKey) {
     setShownLesson(lessonKey);
-    setReadFlash(null);
     setTocOpen(false);
   }
   useEffect(() => {
@@ -97,39 +79,6 @@ export function LessonPage() {
     course?.stages.forEach((s) => s.lessons.forEach((l) => map.set(l.id, l.title)));
     return map;
   }, [course]);
-
-  const bookmarkMut = useMutation({
-    mutationFn: () => api.toggleBookmark(courseId, lid),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lesson", courseId, lid] });
-      qc.invalidateQueries({ queryKey: ["course", courseId] });
-      qc.invalidateQueries({ queryKey: ["bookmarks"] });
-    },
-  });
-
-  const readMut = useMutation({
-    mutationFn: () => api.markRead(courseId, lid),
-    onSuccess: (res) => {
-      api.mentorEvent("lesson_read", courseId, lid, { title: lesson?.title });
-      window.clearTimeout(flashTimer.current);
-      qc.invalidateQueries({ queryKey: ["lesson", courseId, lid] });
-      qc.invalidateQueries({ queryKey: ["course", courseId] });
-      qc.invalidateQueries({ queryKey: ["profile"] });
-      // Progress is linear: a lesson ahead of the current one is not counted yet,
-      // so say so and point to the lesson that is (this note stays on screen).
-      if (res.ahead && res.current_lesson) {
-        setReadFlash({ text: "Засчитается, когда дойдёшь сюда по порядку.", currentId: res.current_lesson });
-        return;
-      }
-      // A counted lesson ends with a way forward, so this note stays until navigation.
-      if (res.awarded) {
-        setReadFlash({ text: `+${res.xp_gain} XP — тема пройдена.`, nextId: lesson?.nav.next_id ?? undefined });
-        return;
-      }
-      setReadFlash({ text: "Отмечено прочитанным" });
-      flashTimer.current = window.setTimeout(() => setReadFlash(null), 3500);
-    },
-  });
 
   const lang = useMemo(() => langForCourse(courseId), [courseId]);
 
@@ -172,8 +121,6 @@ export function LessonPage() {
     );
   }
 
-  const handleBookmark = () => (user ? bookmarkMut.mutate() : openLogin());
-  const handleRead = () => (user ? readMut.mutate() : openLogin());
   const mins = readMinutes(lesson.theory, lesson.code_explained);
   const meta = [
     stageInfo?.title,
@@ -218,21 +165,7 @@ export function LessonPage() {
             </div>
 
             <p className="mt-6 text-caption text-fg-muted">{meta.join(" · ")}</p>
-            <div className="mt-2 flex items-start justify-between gap-4">
-              <h1 className="text-title2 font-bold tracking-[-0.025em] text-fg md:text-title1">{lesson.title}</h1>
-              <button
-                type="button"
-                onClick={handleBookmark}
-                aria-pressed={lesson.bookmarked}
-                aria-label={lesson.bookmarked ? "Убрать из избранного" : "Добавить в избранное"}
-                className={cn(
-                  "grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-colors duration-150 ease-out hover:bg-surface",
-                  lesson.bookmarked ? "text-accent" : "text-fg-muted hover:text-fg",
-                )}
-              >
-                <Bookmark size={20} aria-hidden="true" className={cn(lesson.bookmarked && "fill-current")} />
-              </button>
-            </div>
+            <h1 className="mt-2 text-title2 font-bold tracking-[-0.025em] text-fg md:text-title1">{lesson.title}</h1>
 
             {lesson.association && (
               <div className="mt-8 rounded-xl bg-surface p-6">
@@ -286,41 +219,7 @@ export function LessonPage() {
             {/* Closure: recall in your own words (Galperin / Badmaev) */}
             <OwnWords key={lessonKey} lang={lang} />
 
-            <div className="mt-12 flex flex-wrap items-center gap-4">
-              <Button size="lg" onClick={handleRead} disabled={readMut.isPending}>
-                {lesson.status === "done" ? "Прочитано" : "Понятно, отметить"}
-              </Button>
-              <p role="status" className="flex flex-wrap items-center gap-x-2 text-caption text-fg">
-                {readFlash && (
-                  <>
-                    {readFlash.currentId ? (
-                      <Clock size={16} className="text-fg-muted" aria-hidden="true" />
-                    ) : (
-                      <Check size={16} strokeWidth={2.5} className="text-success" aria-hidden="true" />
-                    )}
-                    {readFlash.text}
-                    {readFlash.currentId && (
-                      <Link
-                        to={`/courses/${courseId}/lessons/${readFlash.currentId}`}
-                        className="inline-flex min-h-11 items-center text-link hover:underline"
-                      >
-                        К текущему уроку
-                      </Link>
-                    )}
-                    {readFlash.nextId && (
-                      <Link
-                        to={`/courses/${courseId}/lessons/${readFlash.nextId}`}
-                        className="inline-flex min-h-11 items-center font-medium text-link hover:underline"
-                      >
-                        Следующая тема: {titleById.get(readFlash.nextId) ?? "дальше"}
-                      </Link>
-                    )}
-                  </>
-                )}
-              </p>
-            </div>
-
-            <nav aria-label="Соседние темы" className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <nav aria-label="Соседние темы" className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <NeighbourLink
                 direction="prev"
                 to={lesson.nav.prev_id ? `/courses/${courseId}/lessons/${lesson.nav.prev_id}` : null}
@@ -354,21 +253,8 @@ export function LessonPage() {
             )}
           </article>
 
-          <aside className="hidden xl:block" aria-label="Прогресс и похожие темы">
+          <aside className="hidden xl:block" aria-label="Похожие темы">
             <div className="sticky top-[76px] space-y-10">
-              {course?.progress && (
-                <div>
-                  <p className="text-caption font-semibold text-fg">Прогресс курса</p>
-                  <ProgressBar
-                    value={course.progress.percent}
-                    label={`Курс пройден на ${course.progress.percent}%`}
-                    className="mt-3"
-                  />
-                  <p className="mt-2 text-caption text-fg-muted tabular">
-                    {course.progress.done} из {course.progress.total} тем · {course.progress.percent}%
-                  </p>
-                </div>
-              )}
               {related && related.items.length > 0 && (
                 <div>
                   <p className="text-caption font-semibold text-fg">Похожие темы</p>

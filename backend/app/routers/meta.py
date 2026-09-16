@@ -10,18 +10,13 @@ router = APIRouter(prefix="/api", tags=["meta"])
 
 @router.get("/stats")
 async def stats() -> dict:
-    """Hero numbers for the landing page (real student count from the shared DB)."""
+    """Hero numbers for the landing page: only what the content itself proves.
+
+    The site has no accounts, so there is no student count to report — and an
+    invented one would be a lie.
+    """
     courses = bot.all_courses()
-    total_lessons = sum(c.total for c in courses.values())
-    try:
-        overview = await bot.models.admin_overview(today="", week_ago="")
-        students = overview.get("total_users", 0)
-    except Exception:
-        students = 0
-    # Real count only: no invented floor on a fresh database.
     return {
-        "students": students,
-        "students_real": students,
         "courses": len(courses),
-        "lessons": total_lessons,
+        "lessons": sum(c.total for c in courses.values()),
     }

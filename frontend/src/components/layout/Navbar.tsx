@@ -1,16 +1,12 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { AnimatePresence, m } from "framer-motion";
-import { LogOut, Menu, Search, X } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useLoginModal } from "@/hooks/useLoginModal";
+import { Menu, Search, X } from "lucide-react";
 import { useDialog } from "@/hooks/useDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { DURATION, EASE_OUT, useDuration } from "@/lib/motion";
-import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -22,8 +18,6 @@ const links = [
 const iconButton = "grid h-11 w-11 place-items-center rounded-xl text-fg transition-colors duration-150 ease-out hover:bg-surface";
 
 export function Navbar() {
-  const { user, logout } = useAuth();
-  const { open: openLogin } = useLoginModal();
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
 
@@ -62,19 +56,6 @@ export function Navbar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
-          <div className="hidden md:block">
-            {user ? (
-              <UserMenu user={user} onLogout={logout} />
-            ) : (
-              <button
-                type="button"
-                onClick={openLogin}
-                className="inline-flex h-11 items-center rounded-xl px-3 text-caption font-medium text-link hover:underline"
-              >
-                Войти
-              </button>
-            )}
-          </div>
           <Link to="/search" aria-label="Поиск" className={cn(iconButton, "md:hidden")}>
             <Search size={20} aria-hidden="true" />
           </Link>
@@ -92,138 +73,13 @@ export function Navbar() {
       </Container>
 
       <AnimatePresence>
-        {menuOpen && (
-          <MobileMenu
-            user={user}
-            onClose={() => setMenuOpen(false)}
-            onLogin={openLogin}
-            onLogout={logout}
-          />
-        )}
+        {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} />}
       </AnimatePresence>
     </header>
   );
 }
 
-function UserMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const { pathname } = useLocation();
-  const name = user.username ? `@${user.username}` : `user_${user.id}`;
-  const menuId = useId();
-
-  const [openPath, setOpenPath] = useState(pathname);
-  if (openPath !== pathname) {
-    setOpenPath(pathname);
-    setOpen(false);
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    const items = () =>
-      Array.from(rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
-    items()[0]?.focus();
-
-    const onPointer = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    // ARIA menu pattern: arrows move between items, Escape returns to the button.
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-        buttonRef.current?.focus();
-        return;
-      }
-      if (e.key === "Tab") {
-        setOpen(false);
-        return;
-      }
-      const list = items();
-      if (list.length === 0) return;
-      const i = list.indexOf(document.activeElement as HTMLElement);
-      const move: Record<string, number> = {
-        ArrowDown: (i + 1) % list.length,
-        ArrowUp: (i - 1 + list.length) % list.length,
-        Home: 0,
-        End: list.length - 1,
-      };
-      if (e.key in move) {
-        e.preventDefault();
-        list[move[e.key]].focus();
-      }
-    };
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        ref={buttonRef}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        aria-label="Меню профиля"
-        onClick={() => setOpen((v) => !v)}
-        className="grid h-11 w-11 place-items-center rounded-xl"
-      >
-        <span className="grid h-8 w-8 place-items-center rounded-full border border-line bg-surface text-caption font-semibold text-fg">
-          {name.replace("@", "").charAt(0).toUpperCase()}
-        </span>
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-60 overflow-hidden rounded-xl border border-line bg-bg py-1 shadow-popover">
-          {/* The account name labels the menu; it is not a menu item. */}
-          <p className="truncate px-4 py-2 text-caption text-fg-muted">{name}</p>
-          <div role="menu" id={menuId} aria-label={`Профиль ${name}`}>
-          <Link
-            role="menuitem"
-            to="/dashboard"
-            className="flex min-h-11 items-center px-4 text-body text-fg hover:bg-surface"
-          >
-            Кабинет
-          </Link>
-          {user.is_admin && (
-            <Link
-              role="menuitem"
-              to="/insights"
-              className="flex min-h-11 items-center px-4 text-body text-fg hover:bg-surface"
-            >
-              Аналитика
-            </Link>
-          )}
-          <button
-            role="menuitem"
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              onLogout();
-            }}
-            className="flex min-h-11 w-full items-center px-4 text-left text-body text-fg hover:bg-surface"
-          >
-            Выйти
-          </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface MobileMenuProps {
-  user: User | null;
-  onClose: () => void;
-  onLogin: () => void;
-  onLogout: () => void;
-}
-
-function MobileMenu({ user, onClose, onLogin, onLogout }: MobileMenuProps) {
+function MobileMenu({ onClose }: { onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const d = useDuration();
   useDialog(panelRef, onClose);
@@ -269,49 +125,10 @@ function MobileMenu({ user, onClose, onLogin, onLogout }: MobileMenuProps) {
                 </NavLink>
               </li>
             ))}
-            {user && (
-              <li>
-                <NavLink to="/dashboard" onClick={onClose} className={rowClass}>
-                  Кабинет
-                </NavLink>
-              </li>
-            )}
-            {user?.is_admin && (
-              <li>
-                <NavLink to="/insights" onClick={onClose} className={rowClass}>
-                  Аналитика
-                </NavLink>
-              </li>
-            )}
           </ul>
         </nav>
 
         <div className="mt-8 flex flex-col items-start gap-3">
-          {user ? (
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onLogout();
-              }}
-              className="inline-flex min-h-11 items-center gap-2 text-caption text-fg-muted hover:text-fg"
-            >
-              <LogOut size={16} aria-hidden="true" />
-              Выйти
-            </button>
-          ) : (
-            <Button
-              size="lg"
-              pill
-              className="w-full"
-              onClick={() => {
-                onClose();
-                onLogin();
-              }}
-            >
-              Войти через Telegram
-            </Button>
-          )}
           <ThemeToggle withLabel />
         </div>
       </Container>

@@ -1,10 +1,11 @@
-"""Launch checks for the site (stage 3).
+"""Launch checks for the site.
 
-Safe defaults and a hard stop without a real session secret, admin-only
-analytics, honest status for a lesson ahead of the current one, deterministic
-answer shuffling that keeps the right answer, emoji-free API text with code
-untouched, the SEO shell (meta, JSON-LD, sitemap, robots) and databases on
-absolute paths that survive a restart.
+The site has no accounts: no login endpoints, no cookies, no per-reader data.
+What is checked here: safe defaults and a hard stop without SITE_URL, security
+headers and the CSP, abuse limits for the anonymous mentor, deterministic answer
+shuffling that keeps the right answer, emoji-free API text with code untouched,
+the SEO shell (meta, JSON-LD, sitemap, robots) and the mentor database on an
+absolute path surviving a restart.
 
 Run from backend/:  .venv/bin/python -m pytest tests -q
 """
@@ -23,11 +24,9 @@ from html import unescape
 from html.parser import HTMLParser
 
 import pytest
-from conftest import ADMIN_ID, BACKEND_DIR, BOT_TOKEN, FRONTEND_DIR, REPO_DIR, SITE_URL
+from conftest import BACKEND_DIR, FRONTEND_DIR, REPO_DIR, SITE_URL
 
 EMOJI_RE = re.compile("[\U0001F000-\U0001FAFF☀-➿⬀-⯿️‍]")
-DEFAULT_SECRET = "dev-insecure-secret-change-me"
-STUDENT_ID = 222_000_222
 SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
 
 
@@ -40,7 +39,7 @@ def _courses():
 # ───────────────────────────── safe defaults ─────────────────────────────
 
 def _clean_env(monkeypatch) -> None:
-    for name in ("DEV_AUTH", "SESSION_SECRET", "COOKIE_SECURE", "MENTOR_ANALYTICS_OPEN", "ADMIN_TELEGRAM_IDS", "SITE_URL"):
+    for name in ("DEV_MODE", "HTTPS_ONLY", "SITE_URL", "CORS_ORIGINS"):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -49,20 +48,19 @@ def test_settings_are_safe_by_default(monkeypatch):
 
     _clean_env(monkeypatch)
     s = load_settings()
-    assert s.dev_auth_enabled is False
-    assert s.cookie_secure is True
-    assert s.mentor_analytics_open is False
-    assert s.admin_telegram_ids == frozenset()
+    assert s.dev_mode is False
+    assert s.https_only is True
+    assert s.cors_origins == []
 
 
 def test_dev_mode_is_explicit_and_local(monkeypatch):
     from app.settings import load_settings
 
     _clean_env(monkeypatch)
-    monkeypatch.setenv("DEV_AUTH", "1")
+    monkeypatch.setenv("DEV_MODE", "1")
     s = load_settings()
-    assert s.dev_auth_enabled is True
-    assert s.cookie_secure is False  # plain http://localhost
+    assert s.dev_mode is True
+    assert s.https_only is False  # plain http://localhost
 
 
 def _start_app(overrides: dict[str, str | None]) -> subprocess.CompletedProcess:
@@ -78,23 +76,16 @@ def _start_app(overrides: dict[str, str | None]) -> subprocess.CompletedProcess:
     )
 
 
-@pytest.mark.parametrize("secret", [None, "", DEFAULT_SECRET])
-def test_start_refuses_without_real_secret_outside_dev(secret):
-    result = _start_app({"DEV_AUTH": "0", "SESSION_SECRET": secret})
-    assert result.returncode != 0
-    assert "SESSION_SECRET" in result.stderr
-
-
 @pytest.mark.parametrize("site_url", [None, "", "academy.example", "ftp://academy.example"])
 def test_start_refuses_without_site_url_outside_dev(site_url):
     """Canonical, Open Graph and the sitemap must never be built from the Host header."""
-    result = _start_app({"DEV_AUTH": "0", "SITE_URL": site_url})
+    result = _start_app({"DEV_MODE": "0", "SITE_URL": site_url})
     assert result.returncode != 0
     assert "SITE_URL" in result.stderr
 
 
 def test_start_allowed_locally_in_dev_mode():
-    result = _start_app({"DEV_AUTH": "1", "SESSION_SECRET": None, "SITE_URL": None})
+    result = _start_app({"DEV_MODE": "1", "SITE_URL": None})
     assert result.returncode == 0, result.stderr
 
 
@@ -105,64 +96,56 @@ def test_host_header_does_not_change_public_urls(client):
     assert "evil.example" not in client.get("/courses/python_beginner", headers=forged).text
 
 
-def test_dev_login_is_404_when_disabled(client):
-    assert client.post("/api/auth/dev", json_body={"user_id": 5}).status == 404
-    assert client.get("/api/auth/dev/users").status == 404
-    assert client.get("/api/auth/config").json()["dev_auth_enabled"] is False
+# ─────────────────────────── no accounts anywhere ──────────────────────────
+
+@pytest.mark.parametrize("path", [
+    "/api/auth/config", "/api/auth/session", "/api/auth/dev/users",
+    "/api/auth/telegram/callback", "/api/me", "/api/me/bookmarks", "/api/me/recommendations",
+])
+def test_account_endpoints_do_not_exist(client, path):
+    assert client.get(path).status == 404
 
 
-def test_session_cookie_is_http_only_secure_lax():
-    from fastapi import Response
-
-    from app.auth import issue_session
-
-    response = Response()
-    issue_session(response, 42)
-    cookie = response.headers["set-cookie"].lower()
-    assert cookie.startswith("pkh_session=")
-    assert "httponly" in cookie and "secure" in cookie and "samesite=lax" in cookie
+@pytest.mark.parametrize("path", ["/api/auth/dev", "/api/auth/telegram", "/api/auth/logout",
+                                  "/api/courses/python_beginner/lessons/1/read", "/api/bookmarks"])
+def test_account_writes_do_not_exist(client, path):
+    # No route is registered at all: the SPA fallback answers GET only, so a POST
+    # is refused by the router itself (405) instead of reaching a handler.
+    assert client.post(path, json_body={}).status in (404, 405)
 
 
-def _telegram_query(next_path: str | None = None, forge: bool = False, **fields) -> str:
-    """A Telegram Login Widget callback query, signed the way Telegram signs it."""
-    import hmac
-    import time
-    from urllib.parse import urlencode
-
-    data = {"id": 777_000_777, "first_name": "Ali", "auth_date": int(time.time()), **fields}
-    check = "\n".join(sorted(f"{k}={v}" for k, v in data.items()))
-    secret = hashlib.sha256(BOT_TOKEN.encode()).digest()
-    signature = hmac.new(secret, check.encode(), hashlib.sha256).hexdigest()
-    data["hash"] = "0" * 64 if forge else signature
-    if next_path is not None:
-        data["next"] = next_path
-    return urlencode(data)
+def test_analytics_is_gone(client):
+    """Nobody can be an admin without accounts, so the endpoint is removed, not hidden."""
+    assert client.get("/api/mentor/analytics").status == 404
 
 
-def test_telegram_callback_signs_in_without_inline_javascript(client):
-    """The widget evaluates data-onauth as JavaScript, which the CSP forbids, so login
-    goes through a redirect callback instead: no inline or eval'd script anywhere."""
-    response = client.get(f"/api/auth/telegram/callback?{_telegram_query()}")
-    assert response.status in (302, 303)
-    assert response.header("location") == "/"
-    cookie = (response.header("set-cookie") or "").lower()
-    assert cookie.startswith("pkh_session=")
-    assert "httponly" in cookie and "secure" in cookie and "samesite=lax" in cookie
+@pytest.mark.parametrize("path", ["/api/health", "/api/courses", "/api/courses/python_beginner",
+                                  "/api/courses/python_beginner/lessons/1", "/api/stats", "/"])
+def test_nothing_sets_a_cookie(client, path):
+    assert client.get(path).header("set-cookie") is None
 
 
-def test_telegram_callback_rejects_a_forged_signature(client):
-    response = client.get(f"/api/auth/telegram/callback?{_telegram_query(forge=True)}")
-    assert response.status == 401
-    assert response.header("set-cookie") is None
+def test_lesson_payload_has_no_reader_state(client):
+    lesson = client.get("/api/courses/python_beginner/lessons/1").json()
+    for field in ("status", "bookmarked", "progress", "current_lesson"):
+        assert field not in lesson, field
 
 
-def test_telegram_callback_only_returns_to_our_own_pages(client):
-    inside = client.get(f"/api/auth/telegram/callback?{_telegram_query(next_path='/courses/python_beginner')}")
-    assert inside.header("location") == "/courses/python_beginner"
-    for outside in ("https://evil.example/x", "//evil.example/x", "/\\evil.example"):
-        response = client.get(f"/api/auth/telegram/callback?{_telegram_query(next_path=outside)}")
-        assert response.header("location") == "/", outside
+def test_course_payload_has_no_progress(client):
+    course = client.get("/api/courses/python_beginner").json()
+    assert "progress" not in course
+    assert all("status" not in stage for stage in course["stages"])
+    assert all("status" not in l and "bookmarked" not in l
+               for stage in course["stages"] for l in stage["lessons"])
 
+
+def test_stats_report_only_what_the_content_proves(client):
+    stats = client.get("/api/stats").json()
+    assert set(stats) == {"courses", "lessons"}
+    assert stats["courses"] == len(_courses())
+
+
+# ─────────────────────────── headers and limits ────────────────────────────
 
 def _csp(response) -> dict[str, str]:
     policy = response.header("content-security-policy") or ""
@@ -180,14 +163,13 @@ def test_security_headers(client, path):
     assert r.header("referrer-policy") == "strict-origin-when-cross-origin"
     assert "camera=()" in (r.header("permissions-policy") or "")
     assert "max-age=" in (r.header("strict-transport-security") or "")
-    # Popups stay allowed: the Telegram login flow can open its own window.
-    assert r.header("cross-origin-opener-policy") == "same-origin-allow-popups"
     assert r.header("cross-origin-resource-policy") == "same-origin"
     csp = _csp(r)
     assert csp.get("default-src") == "'self'"
     assert "'unsafe-inline'" not in csp["script-src"]
-    assert "https://telegram.org" in csp["script-src"]
-    assert "https://oauth.telegram.org" in csp["frame-src"]
+    # Nothing third-party is embedded any more: no foreign script or frame source.
+    assert "telegram" not in csp["script-src"]
+    assert csp["frame-src"] == "'none'"
     assert "frame-ancestors" in csp and "object-src" in csp
 
 
@@ -206,29 +188,6 @@ def test_cors_allows_only_the_configured_origin(client):
     other = client.request("OPTIONS", "/api/courses", headers={"origin": "https://evil.example", **preflight})
     assert other.header("access-control-allow-origin") is None
 
-
-# ─────────────────────────── admin-only analytics ──────────────────────────
-
-def test_analytics_is_404_for_guests_and_students(client, make_user):
-    make_user(STUDENT_ID, "student")
-    assert client.get("/api/mentor/analytics").status == 404
-    assert client.get("/api/mentor/analytics", user_id=STUDENT_ID).status == 404
-
-
-def test_analytics_is_open_to_admin(client, make_user):
-    make_user(ADMIN_ID, "admin")
-    r = client.get("/api/mentor/analytics", user_id=ADMIN_ID)
-    assert r.status == 200 and "totals" in r.json()
-
-
-def test_session_says_who_is_admin(client, make_user):
-    make_user(ADMIN_ID, "admin")
-    make_user(STUDENT_ID, "student")
-    assert client.get("/api/auth/session", user_id=ADMIN_ID).json()["user"]["is_admin"] is True
-    assert client.get("/api/auth/session", user_id=STUDENT_ID).json()["user"]["is_admin"] is False
-
-
-# ─────────────────────────── abuse limits ──────────────────────────────────
 
 def test_event_meta_size_is_capped(client):
     big = {"type": "lesson_view", "course_id": "python_beginner", "lesson_id": 1, "meta": {"blob": "x" * 5000}}
@@ -269,24 +228,6 @@ def test_event_logging_is_rate_limited(client, monkeypatch):
     body = {"type": "check_attempt", "course_id": "math_thinking", "lesson_id": 3}
     statuses = [client.post("/api/mentor/event", json_body=body, headers=headers).status for _ in range(4)]
     assert statuses == [200, 200, 429, 429]
-
-
-# ─────────────────────────── honest lesson status ──────────────────────────
-
-def test_reading_a_lesson_ahead_is_reported_honestly(client, make_user):
-    uid = make_user(333_000_333, "ahead")
-    ahead = client.post("/api/courses/python_beginner/lessons/5/read", user_id=uid).json()
-    assert ahead["awarded"] is False and ahead["ahead"] is True
-    assert ahead["current_lesson"] == 1 and ahead["progress"]["done"] == 0
-
-    first = client.post("/api/courses/python_beginner/lessons/1/read", user_id=uid).json()
-    assert first["awarded"] is True and first["ahead"] is False
-    assert first["current_lesson"] == 2
-
-
-def test_stats_show_the_real_student_count(client):
-    stats = client.get("/api/stats").json()
-    assert stats["students"] == stats["students_real"]
 
 
 def test_course_descriptions(client):
@@ -368,13 +309,10 @@ def test_api_text_has_no_emoji_and_code_is_untouched(client):
     assert code_changed == []
 
 
-def test_search_and_profile_have_no_emoji(client, make_user):
+def test_search_results_have_no_emoji(client):
     hits = client.get("/api/search?q=%D1%81%D0%BF%D0%B8%D1%81%D0%BE%D0%BA").json()["hits"]
     assert hits, "поиск «список» должен что-то находить"
     texts = [h[k] for h in hits for k in ("title", "topic_name", "course_title", "snippet")]
-    uid = make_user(444_000_444, "profile")
-    profile = client.get("/api/me", user_id=uid).json()
-    texts += [profile["user"]["level_title"]] + [c["title"] for c in profile["courses"]]
     assert [t for t in texts if EMOJI_RE.search(t or "")] == []
 
 
@@ -444,7 +382,10 @@ def test_course_page_html_has_meta_without_js(client):
 
 
 def test_home_and_lesson_meta(client):
-    assert _json_ld(client.get("/").text)["@type"] == "EducationalOrganization"
+    home = _json_ld(client.get("/").text)
+    assert home["@type"] == "EducationalOrganization"
+    # The bot is gone: nothing may point at it any more.
+    assert "sameAs" not in home and "t.me" not in json.dumps(home, ensure_ascii=False)
     lesson = client.get("/courses/math_thinking/lessons/18")
     assert "Сложный процент" in _title(lesson.text)
     assert _meta(lesson.text, "property", "og:url") == f"{SITE_URL}/courses/math_thinking/lessons/18"
@@ -453,13 +394,17 @@ def test_home_and_lesson_meta(client):
 def test_lesson_page_preloads_its_api_data(client):
     html_text = client.get("/courses/math_thinking/lessons/18").text
     for href in ("/api/courses/math_thinking/lessons/18", "/api/courses/math_thinking"):
-        assert f'<link rel="preload" href="{href}" as="fetch" crossorigin="use-credentials" />' in html_text
-    assert 'rel="preload"' not in client.get("/courses").text
+        assert f'<link rel="preload" href="{href}" as="fetch"' in html_text
+    assert 'rel="preload" href="/api' not in client.get("/courses").text
 
 
-@pytest.mark.parametrize("path", ["/dashboard", "/search", "/insights"])
-def test_private_pages_are_noindex(client, path):
-    assert _meta(client.get(path).text, "name", "robots") == "noindex, nofollow"
+def test_search_page_is_noindex(client):
+    assert _meta(client.get("/search").text, "name", "robots") == "noindex, nofollow"
+
+
+@pytest.mark.parametrize("path", ["/dashboard", "/insights"])
+def test_removed_pages_are_404(client, path):
+    assert client.get(path).status == 404
 
 
 def test_unknown_course_returns_404_page(client):
@@ -500,7 +445,7 @@ def test_sitemap_lists_every_course_and_lesson(client):
 def test_robots_txt(client):
     text = client.get("/robots.txt").text
     assert f"Sitemap: {SITE_URL}/sitemap.xml" in text
-    for path in ("/api/", "/dashboard", "/search", "/insights"):
+    for path in ("/api/", "/search"):
         assert f"Disallow: {path}" in text
 
 
@@ -567,38 +512,36 @@ def test_built_assets_are_cached_for_a_year(client):
     assert client.get("/courses").header("cache-control") == "no-cache"
 
 
-# ─────────────────────────── databases on a volume ─────────────────────────
+# ─────────────────────────── the mentor database ───────────────────────────
 
 _RESTART_SCRIPT = """
 import asyncio, sys
 from app.main import app
-from app import bot_bridge as bot, mentor_store
+from app import mentor_store
 
 async def main(step):
     async with app.router.lifespan_context(app):
         if step == "write":
-            await bot.models.create_user(777, "volume")
-            await mentor_store.log_event("user:777", "lesson_view", "python_beginner", 1)
-        user = await bot.models.get_user(777)
-        print(user is not None, len(await mentor_store._all_events()))
+            await mentor_store.log_event("anon:volume", "lesson_view", "python_beginner", 1)
+        print(len(await mentor_store._all_events()))
 
 asyncio.run(main(sys.argv[1]))
 """
 
 
-def test_databases_on_absolute_paths_survive_a_restart(tmp_path):
+def test_mentor_database_on_an_absolute_path_survives_a_restart(tmp_path):
     volume = tmp_path / "data"
-    env = {**os.environ, "DB_PATH": str(volume / "academy.db"), "MENTOR_DB_PATH": str(volume / "mentor.db")}
+    env = {**os.environ, "MENTOR_DB_PATH": str(volume / "mentor.db")}
 
-    def run(step: str) -> list[str]:
+    def run(step: str) -> str:
         result = subprocess.run([sys.executable, "-c", _RESTART_SCRIPT, step], cwd=BACKEND_DIR,
                                 env=env, capture_output=True, text=True, timeout=120)
         assert result.returncode == 0, result.stderr
-        return result.stdout.split()[-2:]
+        return result.stdout.split()[-1]
 
-    assert run("write") == ["True", "1"]
-    assert (volume / "academy.db").is_file() and (volume / "mentor.db").is_file()
-    assert run("read") == ["True", "1"]
+    assert run("write") == "1"
+    assert (volume / "mentor.db").is_file()
+    assert run("read") == "1"
 
 
 # ─────────────────────────── build and brand ───────────────────────────────
@@ -611,9 +554,13 @@ def test_dockerfile_uses_node_22_and_proxy_headers():
 
 def test_env_example_documents_launch_variables():
     text = (BACKEND_DIR / ".env.example").read_text(encoding="utf-8")
-    for name in ("DEV_AUTH", "SESSION_SECRET", "COOKIE_SECURE", "TELEGRAM_BOT_TOKEN", "CORS_ORIGINS",
-                 "DB_PATH", "MENTOR_DB_PATH", "ADMIN_TELEGRAM_IDS", "SITE_URL"):
+    for name in ("DEV_MODE", "HTTPS_ONLY", "SITE_URL", "CORS_ORIGINS", "MENTOR_DB_PATH"):
         assert re.search(rf"^#?\s*{name}=", text, re.M), name
+    # Nothing about accounts may linger in the template.
+    for gone in ("SESSION_SECRET", "TELEGRAM_BOT_TOKEN", "ADMIN_TELEGRAM_IDS"):
+        assert gone not in text, gone
+    # The bot's own database is gone; only the mentor's remains (MENTOR_DB_PATH).
+    assert not re.search(r"^#?\s*DB_PATH=", text, re.M)
 
 
 def test_brand_is_python_academy():

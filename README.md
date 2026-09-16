@@ -4,8 +4,8 @@
 
 # 🐍 Python Academy — Web
 
-**Дорогой, тёмный и понятный справочник по Python, backend и вебу.**
-Веб-версия образовательной платформы [@python_academy_tj_bot](https://t.me/python_academy_tj_bot) — с той же базой и контентом, что и Telegram-бот.
+**Понятный справочник по Python, backend и вебу.**
+Бесплатный сайт для чтения: курсы, проверки и сократический наставник — без регистрации и без аккаунтов.
 
 [![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -27,52 +27,53 @@
 - ✨ **Режим «объяснить проще»** — адаптивная подача в выбранном стиле.
 - 🔮 **Ретривал-практика** — «угадай, прежде чем смотреть» (active recall).
 - 🧑‍🏫 **Сократический наставник** — помогает думать (hint-лестница), а не выдаёт ответ.
-- 🔁 **Прогресс, стрик и рекомендации** — синхронно с ботом по одному `user_id`.
+- 🔎 **Поиск по всем курсам** — по названиям тем и тексту теории.
+- 🚪 **Без входа** — ничего не нужно создавать: открыл ссылку и читаешь.
 
 ## 🧩 Архитектура
 
 ```
-React (Vite, 5173) ──/api──▶ FastAPI (8077) ──import──▶ контент и БД бота
-   тёмная/светлая тема          тонкий слой           (lessons, services, academy.db)
-   Shiki · Framer Motion        + mentor + analytics
+React (Vite, 5173) ──/api──▶ FastAPI (8077) ──import──▶ контент курсов (JSON)
+   тёмная/светлая тема          тонкий слой              backend/_bot/content
+   Shiki · Framer Motion        + наставник (mentor.db)
 ```
 
-Бэкенд **не дублирует контент**: он импортирует модули бота (загрузчик уроков, слой данных, сервисы поиска/прогресса/рекомендаций) и отдаёт их по HTTP. Сам бот при этом не запускается и не модифицируется — общая `academy.db` работает в режиме WAL, поэтому бот и API спокойно сосуществуют.
+Бэкенд **не дублирует контент**: он импортирует загрузчик уроков и два сервиса чтения (поиск, похожие темы) и отдаёт их по HTTP. Данных о читателе нет вовсе — единственная база `mentor.db` хранит анонимную телеметрию наставника.
 
 | Слой | Технологии |
 |------|-----------|
 | **Frontend** | React 19 · TypeScript · Vite · Tailwind CSS v4 · Framer Motion · Shiki · React Query · React Router |
-| **Backend**  | FastAPI · Uvicorn · aiosqlite · itsdangerous (сессии) |
-| **Auth**     | Telegram Login Widget (прод) + dev-login (локально) — единый `user_id` с ботом |
-| **Mentor**   | Zero-token rule-based наставник + аналитика (изолированная `mentor.db`) |
+| **Backend**  | FastAPI · Uvicorn · aiosqlite |
+| **Аккаунты** | Их нет: ни входа, ни сессий, ни cookie, ни данных о читателе |
+| **Mentor**   | Zero-token rule-based наставник (анонимная `mentor.db`) |
 
 ## 📁 Структура
 
 ```
 python-academy-web/
-├── backend/                 # FastAPI поверх контента и БД бота
+├── backend/                 # FastAPI поверх JSON-контента курсов
 │   ├── app/
-│   │   ├── bot_bridge.py     # мост к модулям бота (по пути BOT_DIR)
+│   │   ├── bot_bridge.py     # мост к загрузчику контента (по пути BOT_DIR)
 │   │   ├── content.py        # сериализация уроков для веба
 │   │   ├── mentor.py         # zero-token сократический наставник
-│   │   ├── mentor_store.py   # аналитика ментора (отдельная SQLite)
-│   │   ├── routers/          # courses · lessons · search · me · auth · mentor · meta
+│   │   ├── mentor_store.py   # телеметрия наставника (единственная SQLite)
+│   │   ├── routers/          # courses · lessons · search · mentor · meta
 │   │   └── main.py
 │   └── requirements.txt
 ├── frontend/                # React + Vite + TS + Tailwind
 │   ├── src/
-│   │   ├── pages/            # лендинг · каталог · курс · урок · поиск · кабинет · PRO · insights
+│   │   ├── pages/            # лендинг · каталог · курс · урок · поиск · PRO · 404
 │   │   ├── components/       # ui · layout · mentor · landing-эффекты
 │   │   └── lib/              # api · types · shiki · covers
 │   └── public/              # обложки курсов и hero-арт
 └── README.md
 ```
 
-> Бот живёт в отдельном репозитории и папке (`python-academy-bot`) — он **переиспользуется**, а не входит в этот репозиторий.
+> Папка `backend/_bot` — исторический снапшот контента курсов. Telegram-бот, из которого он вырос, удалён 16 сентября 2026 года; сайт от него не зависит.
 
 ## 🚀 Быстрый старт
 
-Нужно: **Python 3.12+**, **Node 18+** и папка бота рядом (по умолчанию `../python-academy-bot`; иначе задай `BOT_DIR` в `backend/.env`).
+Нужно: **Python 3.12+** и **Node 18+**. Контент курсов уже лежит в `backend/_bot`; другой путь задаётся через `BOT_DIR` в `backend/.env`.
 
 **1. Backend (порт 8077)**
 ```bash
@@ -90,11 +91,9 @@ cd frontend
 npm install
 npm run dev
 ```
-Открой <http://localhost:5173>. Vite проксирует `/api` на бэкенд — куки-сессии работают как на одном домене.
+Открой <http://localhost:5173>. Vite проксирует `/api` на бэкенд.
 
-### Вход
-- **Локально** — dev-вход: выбери существующего пользователя бота или введи любой `user_id`. Прогресс синхронизируется с ботом.
-- **В проде** — Telegram Login Widget: задай `TELEGRAM_BOT_TOKEN` в `backend/.env`, домен в @BotFather (`/setdomain`), `DEV_AUTH=0`.
+Локально бэкенду нужен `DEV_MODE=1` в `backend/.env`: без него приложение не стартует без `SITE_URL`. Эксплуатация и переменные — `docs/OPERATIONS.md`.
 
 ## 🔌 API (основное)
 
@@ -103,14 +102,13 @@ npm run dev
 | `GET` | `/api/courses` · `/api/courses/{id}` | Курсы и дерево треков → тем |
 | `GET` | `/api/courses/{id}/lessons/{lid}` | Теория темы (+ self-check) |
 | `GET` | `/api/search?q=` | Поиск по всем курсам |
-| `GET` | `/api/me` · `/api/me/bookmarks` · `/api/me/recommendations` | Профиль, избранное, рекомендации |
+| `GET` | `/api/stats` | Сколько курсов и тем на сайте |
 | `POST`| `/api/mentor/hint` · `/api/mentor/explain` | Zero-token наставник (сократическая лестница / объяснятель) |
-| `GET` | `/api/mentor/analytics` | Метрики вовлечённости (CTR, retry, drop-off…) |
-| `POST`| `/api/auth/telegram` · `/api/auth/dev` | Авторизация |
+| `POST`| `/api/mentor/event` | Анонимная телеметрия наставника |
 
 ## 🎓 Педагогика и наставник
 
-Наставник работает **без LLM** на контенте уроков: при ошибке — лестница `вопрос → намёк → разбор → ответ` (сервер гейтит ступени, ответ не выдаётся сразу). Спрос на «живой» ИИ-наставник логируется в аналитику — Claude API подключается под фичефлагом `MENTOR_AI` после валидации поведения учеников.
+Наставник работает **без LLM** на контенте уроков: при ошибке — лестница `вопрос → намёк → разбор → ответ` (сервер гейтит ступени, ответ не выдаётся сразу). Спрос на «живой» ИИ-наставник пишется в анонимную телеметрию — Claude API подключается под фичефлагом `MENTOR_AI` после валидации поведения читателей.
 
 ## 📄 Лицензия
 

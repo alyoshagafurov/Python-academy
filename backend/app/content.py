@@ -11,7 +11,6 @@ import html
 import random
 import re
 from functools import lru_cache
-from typing import Iterable
 
 from app import bot_bridge as bot
 
@@ -79,23 +78,7 @@ def _lesson_titles_by_topic() -> dict[str, str]:
 
 # ─────────────────────────────── lessons ──────────────────────────────────
 
-def lesson_status(lesson_id: int, current_lesson: int | None) -> str:
-    """Web statuses: done / current / todo (no hard locks — free browsing)."""
-    if current_lesson is None:
-        return "todo"
-    if lesson_id < current_lesson:
-        return "done"
-    if lesson_id == current_lesson:
-        return "current"
-    return "todo"
-
-
-def lesson_brief(
-    course_id: str,
-    lesson: "bot.Lesson",
-    current_lesson: int | None = None,
-    bookmarked: bool = False,
-) -> dict:
+def lesson_brief(course_id: str, lesson: "bot.Lesson") -> dict:
     """Compact lesson shape for trees / lists."""
     return {
         "id": lesson.id,
@@ -104,24 +87,16 @@ def lesson_brief(
         "title": no_emoji(lesson.title),
         "topic": lesson.topic,
         "topic_name": topic_name(lesson.topic),
-        "xp": lesson.xp,
-        "status": lesson_status(lesson.id, current_lesson),
-        "bookmarked": bookmarked,
+        # No XP: without accounts there is no progress to score.
         "placeholder": lesson.placeholder,
     }
 
 
-def lesson_full(
-    course_id: str,
-    lesson: "bot.Lesson",
-    current_lesson: int | None = None,
-    bookmarked: bool = False,
-    nav: dict | None = None,
-) -> dict:
+def lesson_full(course_id: str, lesson: "bot.Lesson", nav: dict | None = None) -> dict:
     """Full lesson body for the reading view."""
     course = bot.get_course(course_id)
     return {
-        **lesson_brief(course_id, lesson, current_lesson, bookmarked),
+        **lesson_brief(course_id, lesson),
         "course_title": no_emoji(course.title),
         "course_emoji": course.emoji,
         "theory": no_emoji(lesson.theory),
@@ -207,11 +182,8 @@ def lesson_simple(lesson: "bot.Lesson") -> dict:
 
 # ─────────────────────────────── courses ──────────────────────────────────
 
-def course_card(course: "bot.Course", current_lesson: int | None = None) -> dict:
+def course_card(course: "bot.Course") -> dict:
     """Course shape for the catalog/landing cards."""
-    done, total, percent = bot.course_service.course_progress(
-        current_lesson or 1, course
-    ) if current_lesson is not None else (0, course.total, 0)
     meta = course_meta(course.id)
     return {
         "id": course.id,
@@ -226,37 +198,22 @@ def course_card(course: "bot.Course", current_lesson: int | None = None) -> dict
         "gradient": meta["gradient"],
         "total_lessons": course.total,
         "stages_count": len(course.stages),
-        "progress": {"done": done, "total": total, "percent": percent}
-        if current_lesson is not None
-        else None,
     }
 
 
-def course_detail(
-    course: "bot.Course",
-    current_lesson: int | None = None,
-    bookmarked_ids: Iterable[int] = (),
-) -> dict:
-    """Full course tree: stages → lessons, with progress + bookmark flags."""
-    bm = set(bookmarked_ids)
-    cur = current_lesson if current_lesson is not None else None
-    stages = []
-    for stage in course.stages:
-        sp = bot.course_service.stage_progress(stage, cur or 1) if cur is not None else None
-        stages.append({
+def course_detail(course: "bot.Course") -> dict:
+    """Full course tree: stages → lessons."""
+    stages = [
+        {
             "id": stage.id,
             "title": no_emoji(stage.title),
             "subtitle": no_emoji(stage.subtitle),
             "emoji": stage.emoji,
-            "status": (sp.status if sp and sp.status != "locked" else "todo") if sp else "todo",
-            "done": sp.done if sp else 0,
             "total": stage.total,
-            "percent": sp.percent if sp else 0,
-            "lessons": [
-                lesson_brief(course.id, lesson, cur, lesson.id in bm)
-                for lesson in stage.lessons
-            ],
-        })
-    card = course_card(course, cur)
+            "lessons": [lesson_brief(course.id, lesson) for lesson in stage.lessons],
+        }
+        for stage in course.stages
+    ]
+    card = course_card(course)
     card["stages"] = stages
     return card

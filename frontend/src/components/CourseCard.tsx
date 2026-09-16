@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import type { CourseCard as CourseCardType } from "@/lib/types";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { pluralize } from "@/lib/utils";
 
 interface CourseCardProps {
@@ -9,16 +8,13 @@ interface CourseCardProps {
   as?: "h2" | "h3";
 }
 
-/** Typographic course card: title, one line, meta; a 2px progress line once started. */
+/** Typographic course card: title, one line, meta. */
 export function CourseCard({ course, as: Heading = "h3" }: CourseCardProps) {
-  const pct = course.progress?.percent ?? 0;
-  const started = (course.progress?.done ?? 0) > 0;
   const meta = [
     course.level,
     `${course.stages_count} ${pluralize(course.stages_count, "трек", "трека", "треков")}`,
     `${course.total_lessons} ${pluralize(course.total_lessons, "тема", "темы", "тем")}`,
   ];
-  if (started) meta.push(`пройдено ${pct}%`);
 
   return (
     <Link
@@ -32,7 +28,6 @@ export function CourseCard({ course, as: Heading = "h3" }: CourseCardProps) {
         </p>
       )}
       <p className="mt-auto pt-6 text-caption text-fg-muted">{meta.join(" · ")}</p>
-      {started && <ProgressBar value={pct} label={`Курс пройден на ${pct}%`} className="mt-4" />}
     </Link>
   );
 }
