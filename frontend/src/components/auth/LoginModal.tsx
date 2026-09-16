@@ -14,7 +14,7 @@ import { DURATION, EASE_OUT, useDuration } from "@/lib/motion";
 import { formatNumber } from "@/lib/utils";
 
 export function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { devLogin, telegramLogin } = useAuth();
+  const { devLogin } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const titleId = useId();
@@ -49,18 +49,6 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
     }
   };
 
-  const handleTelegram = async (user: Record<string, unknown>) => {
-    setBusy(true);
-    try {
-      await telegramLogin(user);
-      onClose();
-    } catch {
-      setError("Telegram-вход не прошёл проверку.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -83,7 +71,7 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
 
           {config?.telegram_enabled && (
             <div className="mt-6">
-              <TelegramLoginButton botUsername={config.telegram_bot_username} onAuth={handleTelegram} />
+              <TelegramLoginButton botUsername={config.telegram_bot_username} />
             </div>
           )}
 

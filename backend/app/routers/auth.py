@@ -1,7 +1,8 @@
 """Auth endpoints: config, session, Telegram login, dev login, logout."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from app import bot_bridge as bot
@@ -68,6 +69,34 @@ async def telegram_login(payload: TelegramPayload, response: Response) -> dict:
         await bot.models.update_username(user_id, payload.username)
     issue_session(response, user_id)
     return {"user": await _user_public(user_id)}
+
+
+def _safe_next(raw: str | None) -> str:
+    """Only our own pages: anything that could be read as another origin becomes «/»."""
+    if not raw or not raw.startswith("/") or raw.startswith(("//", "/\\")):
+        return "/"
+    return raw
+
+
+@router.get("/telegram/callback")
+async def telegram_callback(request: Request) -> RedirectResponse:
+    """Redirect login for the Telegram widget.
+
+    The widget evaluates its ``data-onauth`` attribute as JavaScript, which the CSP
+    forbids; with ``data-auth-url`` it sends the same signed fields here instead, so
+    the page needs no inline or eval'd script at all.
+    """
+    params = dict(request.query_params)
+    next_path = _safe_next(params.pop("next", None))
+    user_id = verify_telegram_auth(params)
+    username = params.get("username")
+    if await bot.models.get_user(user_id) is None:
+        await bot.models.create_user(user_id, username)
+    elif username:
+        await bot.models.update_username(user_id, username)
+    response = RedirectResponse(next_path, status_code=303)
+    issue_session(response, user_id)
+    return response
 
 
 class DevLoginBody(BaseModel):

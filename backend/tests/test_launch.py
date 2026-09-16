@@ -23,7 +23,7 @@ from html import unescape
 from html.parser import HTMLParser
 
 import pytest
-from conftest import ADMIN_ID, BACKEND_DIR, FRONTEND_DIR, REPO_DIR, SITE_URL
+from conftest import ADMIN_ID, BACKEND_DIR, BOT_TOKEN, FRONTEND_DIR, REPO_DIR, SITE_URL
 
 EMOJI_RE = re.compile("[\U0001F000-\U0001FAFF☀-➿⬀-⯿️‍]")
 DEFAULT_SECRET = "dev-insecure-secret-change-me"
@@ -121,6 +121,47 @@ def test_session_cookie_is_http_only_secure_lax():
     cookie = response.headers["set-cookie"].lower()
     assert cookie.startswith("pkh_session=")
     assert "httponly" in cookie and "secure" in cookie and "samesite=lax" in cookie
+
+
+def _telegram_query(next_path: str | None = None, forge: bool = False, **fields) -> str:
+    """A Telegram Login Widget callback query, signed the way Telegram signs it."""
+    import hmac
+    import time
+    from urllib.parse import urlencode
+
+    data = {"id": 777_000_777, "first_name": "Ali", "auth_date": int(time.time()), **fields}
+    check = "\n".join(sorted(f"{k}={v}" for k, v in data.items()))
+    secret = hashlib.sha256(BOT_TOKEN.encode()).digest()
+    signature = hmac.new(secret, check.encode(), hashlib.sha256).hexdigest()
+    data["hash"] = "0" * 64 if forge else signature
+    if next_path is not None:
+        data["next"] = next_path
+    return urlencode(data)
+
+
+def test_telegram_callback_signs_in_without_inline_javascript(client):
+    """The widget evaluates data-onauth as JavaScript, which the CSP forbids, so login
+    goes through a redirect callback instead: no inline or eval'd script anywhere."""
+    response = client.get(f"/api/auth/telegram/callback?{_telegram_query()}")
+    assert response.status in (302, 303)
+    assert response.header("location") == "/"
+    cookie = (response.header("set-cookie") or "").lower()
+    assert cookie.startswith("pkh_session=")
+    assert "httponly" in cookie and "secure" in cookie and "samesite=lax" in cookie
+
+
+def test_telegram_callback_rejects_a_forged_signature(client):
+    response = client.get(f"/api/auth/telegram/callback?{_telegram_query(forge=True)}")
+    assert response.status == 401
+    assert response.header("set-cookie") is None
+
+
+def test_telegram_callback_only_returns_to_our_own_pages(client):
+    inside = client.get(f"/api/auth/telegram/callback?{_telegram_query(next_path='/courses/python_beginner')}")
+    assert inside.header("location") == "/courses/python_beginner"
+    for outside in ("https://evil.example/x", "//evil.example/x", "/\\evil.example"):
+        response = client.get(f"/api/auth/telegram/callback?{_telegram_query(next_path=outside)}")
+        assert response.header("location") == "/", outside
 
 
 def _csp(response) -> dict[str, str]:

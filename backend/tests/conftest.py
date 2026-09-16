@@ -31,6 +31,7 @@ FRONTEND_DIR = TMP_DIR / "static"
 
 ADMIN_ID = 111_000_111
 SITE_URL = "https://academy.example"
+BOT_TOKEN = "123456:test-token-not-a-real-secret"
 
 os.environ.update({
     "DEV_AUTH": "0",
@@ -42,6 +43,9 @@ os.environ.update({
     "FRONTEND_DIR": str(FRONTEND_DIR),
     "SITE_URL": SITE_URL,
     "CORS_ORIGINS": SITE_URL,
+    # Synthetic: the Telegram login flow is signed with it in tests, nowhere else.
+    "TELEGRAM_BOT_TOKEN": BOT_TOKEN,
+    "TELEGRAM_BOT_USERNAME": "python_academy_tj_bot",
 })
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
